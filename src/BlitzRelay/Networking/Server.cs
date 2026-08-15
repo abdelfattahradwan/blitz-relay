@@ -61,6 +61,8 @@ internal sealed class Server : IDisposable
 
 			UnsyncedEvents = false,
 
+			UnsyncedReceiveEvent = true,
+
 			UpdateTime = 15,
 
 			PingInterval = 2000,
@@ -1026,6 +1028,8 @@ internal sealed class Server : IDisposable
 
 			client.Peer.SendPooledPacket(pooledPacket, written);
 
+			_netManager.TriggerUpdate();
+
 			return;
 		}
 
@@ -1086,6 +1090,8 @@ internal sealed class Server : IDisposable
 				int written = MessageCodec.WriteClientData(pooledPacket.Data.AsSpan(pooledPacket.UserDataOffset, payloadLength), gameChannel, gamePayload);
 
 				clients[i].Peer.SendPooledPacket(pooledPacket, written);
+
+				_netManager.TriggerUpdate();
 			}
 
 			return;
@@ -1139,6 +1145,8 @@ internal sealed class Server : IDisposable
 			int written = MessageCodec.WriteHostData(pooledPacket.Data.AsSpan(pooledPacket.UserDataOffset, payloadLength), virtualClientId, gameChannel, gamePayload);
 
 			host.Peer.SendPooledPacket(pooledPacket, written);
+
+			_netManager.TriggerUpdate();
 
 			return;
 		}
@@ -1230,6 +1238,8 @@ internal sealed class Server : IDisposable
 		try
 		{
 			session.Peer.Send(payload, MessageCodec.RelayWireChannel, deliveryMethod);
+
+			_netManager.TriggerUpdate();
 		}
 		catch (TooBigPacketException tooBigPacketException)
 		{
