@@ -15,7 +15,7 @@
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
         <PackageReference Include="LiteNetLib" Version="2.1.4" />
-        <PackageReference Include="System.CommandLine" Version="2.0.10" />
+        <PackageReference Include="System.CommandLine" Version="2.0.11" />
     </ItemGroup>
 
     <ItemGroup>
