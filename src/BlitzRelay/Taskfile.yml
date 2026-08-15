@@ -1,0 +1,42 @@
+﻿version: '3'
+
+vars:
+  OUT_DIR: bin/Publish
+  PROJECT: BlitzRelay.csproj
+  FLAVOURS: [ slim, standalone, native ]
+
+tasks:
+  publish:
+    cmds:
+      - dotnet publish "{{.PROJECT}}" -c Release -r {{.OS}}-{{.ARCH}} -p:PublishSingleFile=true -p:Flavour={{.FLAVOUR}} -o {{.OUT_DIR}}/{{.OS}}-{{.ARCH}}-{{.FLAVOUR}}
+
+  publish-win:
+    cmds:
+      - for:
+          matrix:
+            ARCH: [ x86, x64 ]
+            FLAVOUR:
+              ref: .FLAVOURS
+        task: publish
+        vars:
+          OS: win
+          ARCH: '{{.ITEM.ARCH}}'
+          FLAVOUR: '{{.ITEM.FLAVOUR}}'
+
+  publish-linux:
+    cmds:
+      - for:
+          matrix:
+            ARCH: [ x64 ]
+            FLAVOUR:
+              ref: .FLAVOURS
+        task: publish
+        vars:
+          OS: linux
+          ARCH: '{{.ITEM.ARCH}}'
+          FLAVOUR: '{{.ITEM.FLAVOUR}}'
+
+  publish-all:
+    cmds:
+      - task: publish-win
+      - task: publish-linux
