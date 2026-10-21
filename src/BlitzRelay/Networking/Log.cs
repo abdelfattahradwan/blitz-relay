@@ -55,6 +55,9 @@ internal static partial class Log
 	[LoggerMessage(Level = LogLevel.Warning, Message = "Peer {PeerId} attempted to create duplicate room {RoomCode}.")]
 	public static partial void DuplicateRoomCreateAttempt(ILogger logger, int peerId, string roomCode);
 
+	[LoggerMessage(Level = LogLevel.Warning, Message = "Peer {PeerId} attempted HostClaim while already assigned role {Role}.")]
+	public static partial void HostClaimWhileAlreadyAssignedRole(ILogger logger, int peerId, PeerRole role);
+
 	[LoggerMessage(Level = LogLevel.Information, Message = "Room created: roomCode={RoomCode}, hostPeerId={PeerId}, maximumClients={MaximumClients}.")]
 	public static partial void RoomCreated(ILogger logger, string roomCode, int peerId, int maximumClients);
 

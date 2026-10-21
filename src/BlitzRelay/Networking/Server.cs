@@ -557,7 +557,7 @@ internal sealed class Server : IDisposable, INetLogger
 		{
 			if (session.Role != PeerRole.None)
 			{
-				Log.HostRegisterWhileAlreadyAssignedRole(_logger, session.Peer.Id, session.Role);
+				Log.HostClaimWhileAlreadyAssignedRole(_logger, session.Peer.Id, session.Role);
 
 				return;
 			}
