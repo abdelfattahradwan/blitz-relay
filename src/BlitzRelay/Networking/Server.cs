@@ -340,11 +340,9 @@ internal sealed class Server : IDisposable, INetLogger
 
 						foreach ((int key, PeerConnection client) in room.ClientsByVirtualId)
 						{
-							Send(client, MessageCodec.CreateDisconnected(key), DeliveryMethod.ReliableOrdered);
-
 							client.Clear();
 
-							DisconnectPeer(client);
+							DisconnectPeer(client, MessageCodec.CreateDisconnected(key));
 						}
 
 						room.ClientsByVirtualId.Clear();
@@ -882,11 +880,9 @@ internal sealed class Server : IDisposable, INetLogger
 
 		byte[] disconnectedMessage = MessageCodec.CreateDisconnected(virtualClientId);
 
-		Send(clientSession, disconnectedMessage, DeliveryMethod.ReliableOrdered);
-
 		clientSession.Clear();
 
-		DisconnectPeer(clientSession);
+		DisconnectPeer(clientSession, disconnectedMessage);
 
 		if (room is { HasActiveHost: true, Host: not null })
 		{
@@ -1001,33 +997,29 @@ internal sealed class Server : IDisposable, INetLogger
 
 		room.ClearPendingHostClaim();
 
+		byte[] errorMessage = MessageCodec.CreateError(errorCode);
+
 		if (pendingHostPromotionPeer is not null)
 		{
-			Send(pendingHostPromotionPeer, MessageCodec.GetErrorMessage(errorCode), DeliveryMethod.ReliableOrdered);
-
 			pendingHostPromotionPeer.Clear();
 
-			DisconnectPeer(pendingHostPromotionPeer);
+			DisconnectPeer(pendingHostPromotionPeer, errorMessage);
 		}
 
 		if (room.Host is not null)
 		{
-			Send(room.Host, MessageCodec.GetErrorMessage(errorCode), DeliveryMethod.ReliableOrdered);
-
 			room.Host.Clear();
 
-			DisconnectPeer(room.Host);
+			DisconnectPeer(room.Host, errorMessage);
 
 			room.Host = null;
 		}
 
 		foreach (PeerConnection client in room.ClientsByVirtualId.Values)
 		{
-			Send(client, MessageCodec.GetErrorMessage(errorCode), DeliveryMethod.ReliableOrdered);
-
 			client.Clear();
 
-			DisconnectPeer(client);
+			DisconnectPeer(client, errorMessage);
 		}
 
 		room.ClientsByVirtualId.Clear();
@@ -1294,11 +1286,18 @@ internal sealed class Server : IDisposable, INetLogger
 		}
 	}
 
-	private void DisconnectPeer(PeerConnection session)
+	private void DisconnectPeer(PeerConnection session, byte[]? reason = null)
 	{
 		try
 		{
-			_netManager.DisconnectPeer(session.Peer);
+			if (reason is null)
+			{
+				_netManager.DisconnectPeer(session.Peer);
+			}
+			else
+			{
+				_netManager.DisconnectPeer(session.Peer, reason);
+			}
 		}
 		catch (Exception exception)
 		{
