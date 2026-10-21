@@ -207,7 +207,7 @@ See the `BlitzRelay.Protocol` library for the full message codec API.
 
 Blitz Relay uses [LiteNetLib](https://github.com/RevenantX/LiteNetLib) by RevenantX for UDP networking.
 
-## License
+## Licence
 
 MIT License. See [LICENSE](LICENSE) for details.
 
