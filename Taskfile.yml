@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  test:
+    desc: Run the relay tests
+    cmds:
+      - dotnet test src/BlitzRelay.Tests/BlitzRelay.Tests.csproj {{.CLI_ARGS}}
+
+  load:
+    desc: Run the load harness against an in-process relay, or an external relay with --relay-address
+    cmds:
+      - dotnet run -c Release --project src/BlitzRelay.LoadHarness/BlitzRelay.LoadHarness.csproj -- {{.CLI_ARGS}}
