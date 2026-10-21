@@ -126,4 +126,7 @@ internal static partial class Log
 
 	[LoggerMessage(Level = LogLevel.Error, Message = "Failed to disconnect peer {PeerId}.")]
 	public static partial void FailedToDisconnectPeer(ILogger logger, int peerId, Exception exception);
+
+	[LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception in {Handler}.")]
+	public static partial void UnhandledHandlerException(ILogger logger, string handler, Exception exception);
 }

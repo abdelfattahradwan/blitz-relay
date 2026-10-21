@@ -276,100 +276,107 @@ internal sealed class Server : IDisposable
 
 	private void HandlePeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
 	{
-		lock (_mutex)
+		try
 		{
-			PeerConnection session = GetOrCreateSession(peer);
-
-			Log.PeerDisconnected(_logger, peer.Id, session.Endpoint, session.Role, disconnectInfo.Reason);
-
-			PeerRole role = session.Role;
-
-			Room? room = session.Room;
-
-			int virtualClientId = session.VirtualClientId;
-
-			if (room is not null && ReferenceEquals(room.PendingHostPromotionPeer, session))
+			lock (_mutex)
 			{
-				bool ackReceived = room.PendingHostPromotionAckReceived;
+				PeerConnection session = GetOrCreateSession(peer);
 
-				session.Clear();
+				Log.PeerDisconnected(_logger, peer.Id, session.Endpoint, session.Role, disconnectInfo.Reason);
 
-				if (ackReceived)
+				PeerRole role = session.Role;
+
+				Room? room = session.Room;
+
+				int virtualClientId = session.VirtualClientId;
+
+				if (room is not null && ReferenceEquals(room.PendingHostPromotionPeer, session))
 				{
-					room.PendingHostPromotionPeer = null;
+					bool ackReceived = room.PendingHostPromotionAckReceived;
 
-					room.PendingHostPromotionVirtualClientId = 0;
+					session.Clear();
 
-					room.PendingHostPromotionAckReceived = false;
+					if (ackReceived)
+					{
+						room.PendingHostPromotionPeer = null;
+
+						room.PendingHostPromotionVirtualClientId = 0;
+
+						room.PendingHostPromotionAckReceived = false;
+					}
+					else
+					{
+						room.ClearPendingHostClaim();
+
+						NotifyClientsHostAvailabilityLocked(room, isAvailable: false);
+
+						_ = TryPromoteNextClientToHostLocked(room);
+					}
+
+					return;
 				}
-				else
+
+				if (role == PeerRole.Host && room is not null)
 				{
+					session.Clear();
+
+					if (room.Kind == RoomKind.EphemeralHostOwned)
+					{
+						_roomsByCode.Remove(room.Code);
+
+						foreach ((int key, PeerConnection client) in room.ClientsByVirtualId)
+						{
+							Send(client, MessageCodec.CreateDisconnected(key), DeliveryMethod.ReliableOrdered);
+
+							client.Clear();
+
+							DisconnectPeer(client);
+						}
+
+						room.ClientsByVirtualId.Clear();
+
+						Log.RoomTornDownBecauseHostDisconnected(_logger, room.Code);
+
+						return;
+					}
+
+					room.Host = null;
+
+					room.HostToken = null;
+
 					room.ClearPendingHostClaim();
 
 					NotifyClientsHostAvailabilityLocked(room, isAvailable: false);
 
 					_ = TryPromoteNextClientToHostLocked(room);
-				}
-
-				return;
-			}
-
-			if (role == PeerRole.Host && room is not null)
-			{
-				session.Clear();
-
-				if (room.Kind == RoomKind.EphemeralHostOwned)
-				{
-					_roomsByCode.Remove(room.Code);
-
-					foreach ((int key, PeerConnection client) in room.ClientsByVirtualId)
-					{
-						Send(client, MessageCodec.CreateDisconnected(key), DeliveryMethod.ReliableOrdered);
-
-						client.Clear();
-
-						DisconnectPeer(client);
-					}
-
-					room.ClientsByVirtualId.Clear();
-
-					Log.RoomTornDownBecauseHostDisconnected(_logger, room.Code);
 
 					return;
 				}
 
-				room.Host = null;
+				if (role == PeerRole.Client && room is not null)
+				{
+					room.ClientsByVirtualId.Remove(virtualClientId);
 
-				room.HostToken = null;
+					session.Clear();
 
-				room.ClearPendingHostClaim();
+					if (room is { HasActiveHost: true, Host: not null })
+					{
+						Send(room.Host, MessageCodec.CreateDisconnected(virtualClientId), DeliveryMethod.ReliableOrdered);
+					}
+					else if (room is { Kind: RoomKind.PersistentReserved, HasPendingHostClaim: false })
+					{
+						_ = TryPromoteNextClientToHostLocked(room);
+					}
 
-				NotifyClientsHostAvailabilityLocked(room, isAvailable: false);
-
-				_ = TryPromoteNextClientToHostLocked(room);
-
-				return;
-			}
-
-			if (role == PeerRole.Client && room is not null)
-			{
-				room.ClientsByVirtualId.Remove(virtualClientId);
+					return;
+				}
 
 				session.Clear();
-
-				if (room is { HasActiveHost: true, Host: not null })
-				{
-					Send(room.Host, MessageCodec.CreateDisconnected(virtualClientId), DeliveryMethod.ReliableOrdered);
-				}
-				else if (room is { Kind: RoomKind.PersistentReserved, HasPendingHostClaim: false })
-				{
-					_ = TryPromoteNextClientToHostLocked(room);
-				}
-
-				return;
 			}
-
-			session.Clear();
+		}
+		catch (Exception exception)
+		{
+			Log.UnhandledHandlerException(_logger, nameof(HandlePeerDisconnected), exception);
 		}
 	}
 
@@ -385,56 +392,63 @@ internal sealed class Server : IDisposable
 
 		if (!MessageCodec.TryReadMessageType(payload, out MessageType messageType)) return;
 
-		switch (messageType)
+		try
 		{
-			case MessageType.HostRegister:
+			switch (messageType)
 			{
-				HandleHostRegister(session, payload);
+				case MessageType.HostRegister:
+				{
+					HandleHostRegister(session, payload);
 
-				break;
+					break;
+				}
+
+				case MessageType.HostClaim:
+				{
+					HandleHostClaim(session, payload);
+
+					break;
+				}
+
+				case MessageType.HostPromotionAck:
+				{
+					HandleHostPromotionAck(session, payload);
+
+					break;
+				}
+
+				case MessageType.ClientJoin:
+				{
+					HandleClientJoin(session, payload);
+
+					break;
+				}
+
+				case MessageType.Data:
+				{
+					HandleData(session, payload, deliveryMethod);
+
+					break;
+				}
+
+				case MessageType.Kick:
+				{
+					HandleKick(session, payload);
+
+					break;
+				}
+
+				default:
+				{
+					Log.UnknownRelayMessageType(_logger, peer.Id, payload[0]);
+
+					break;
+				}
 			}
-
-			case MessageType.HostClaim:
-			{
-				HandleHostClaim(session, payload);
-
-				break;
-			}
-
-			case MessageType.HostPromotionAck:
-			{
-				HandleHostPromotionAck(session, payload);
-
-				break;
-			}
-
-			case MessageType.ClientJoin:
-			{
-				HandleClientJoin(session, payload);
-
-				break;
-			}
-
-			case MessageType.Data:
-			{
-				HandleData(session, payload, deliveryMethod);
-
-				break;
-			}
-
-			case MessageType.Kick:
-			{
-				HandleKick(session, payload);
-
-				break;
-			}
-
-			default:
-			{
-				Log.UnknownRelayMessageType(_logger, peer.Id, payload[0]);
-
-				break;
-			}
+		}
+		catch (Exception exception)
+		{
+			Log.UnhandledHandlerException(_logger, nameof(HandleNetworkReceive), exception);
 		}
 
 		_netManager.TriggerUpdate();
@@ -873,14 +887,21 @@ internal sealed class Server : IDisposable
 
 	private void ExpirePendingHostClaims()
 	{
-		lock (_mutex)
+		try
 		{
-			long now = Environment.TickCount64;
-
-			foreach (Room room in _roomsByCode.Values)
+			lock (_mutex)
 			{
-				ExpirePendingHostClaimLocked(room, now);
+				long now = Environment.TickCount64;
+
+				foreach (Room room in _roomsByCode.Values)
+				{
+					ExpirePendingHostClaimLocked(room, now);
+				}
 			}
+		}
+		catch (Exception exception)
+		{
+			Log.UnhandledHandlerException(_logger, nameof(ExpirePendingHostClaims), exception);
 		}
 	}
 
