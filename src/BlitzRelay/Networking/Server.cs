@@ -852,11 +852,18 @@ internal sealed class Server : IDisposable
 	{
 		if (!room.ClientsByVirtualId.Remove(virtualClientId, out PeerConnection? clientSession)) return false;
 
-		Send(clientSession, MessageCodec.CreateDisconnected(virtualClientId), DeliveryMethod.ReliableOrdered);
+		byte[] disconnectedMessage = MessageCodec.CreateDisconnected(virtualClientId);
+
+		Send(clientSession, disconnectedMessage, DeliveryMethod.ReliableOrdered);
 
 		clientSession.Clear();
 
 		DisconnectPeer(clientSession);
+
+		if (room is { HasActiveHost: true, Host: not null })
+		{
+			Send(room.Host, disconnectedMessage, DeliveryMethod.ReliableOrdered);
+		}
 
 		return true;
 	}
