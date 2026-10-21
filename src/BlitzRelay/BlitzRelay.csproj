@@ -22,6 +22,10 @@
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="BlitzRelay.Tests" />
+    </ItemGroup>
+
     <PropertyGroup Condition="'$(Flavour)' == 'slim'">
         <PublishAot>false</PublishAot>
         <PublishTrimmed>false</PublishTrimmed>
