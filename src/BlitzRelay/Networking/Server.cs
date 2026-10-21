@@ -667,12 +667,9 @@ internal sealed class Server : IDisposable, INetLogger
 
 			if (room is { Kind: RoomKind.PersistentReserved, HasActiveHost: false })
 			{
-				if (!room.HasPendingHostClaim)
-				{
-					_ = TryPromoteNextClientToHostLocked(room);
+				if (!room.HasPendingHostClaim) _ = TryPromoteNextClientToHostLocked(room);
 
-					return;
-				}
+				if (ReferenceEquals(room.PendingHostPromotionPeer, session)) return;
 
 				Send(session, MessageCodec.GetJoinSuccessMessage(), DeliveryMethod.ReliableOrdered);
 
