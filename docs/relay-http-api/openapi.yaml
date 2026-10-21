@@ -22,11 +22,6 @@ paths:
       responses:
         '200':
           description: Server is healthy
-          content:
-            text/plain:
-              schema:
-                type: string
-              example: ""
 
   /rooms:
     post:
@@ -48,17 +43,11 @@ paths:
         '400':
           description: Invalid request parameters
           content:
-            text/plain:
+            application/json:
               schema:
                 type: string
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '409':
-          description: Room already exists
-          content:
-            text/plain:
-              schema:
-                type: string
 
     get:
       summary: List all rooms
@@ -133,7 +122,7 @@ paths:
         '400':
           description: Invalid request parameters
           content:
-            text/plain:
+            application/json:
               schema:
                 type: string
         '401':
@@ -202,30 +191,26 @@ components:
           default: false
           description: Whether the room is publicly discoverable
         metadata:
-          type: object
+          type: [ object, 'null' ]
           additionalProperties:
             type: string
-          nullable: true
           description: Optional key-value metadata for the room
 
     PatchRoomRequest:
       type: object
       properties:
         displayName:
-          type: string
-          nullable: true
+          type: [ string, 'null' ]
           description: New display name for the room (max 255 bytes UTF-8). Null to leave unchanged.
         metadataToAdd:
-          type: object
+          type: [ object, 'null' ]
           additionalProperties:
             type: string
-          nullable: true
           description: Metadata key-value pairs to add or overwrite
         metadataToRemove:
-          type: array
+          type: [ array, 'null' ]
           items:
             type: string
-          nullable: true
           description: Metadata keys to remove
 
     RoomSnapshot:
