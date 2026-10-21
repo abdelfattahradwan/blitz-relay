@@ -70,6 +70,8 @@ internal sealed class Server : IDisposable
 			DisconnectTimeout = 30000,
 
 			ChannelsCount = 1,
+
+			MtuOverride = 1350,
 		};
 	}
 
