@@ -590,7 +590,7 @@ internal sealed class Server : IDisposable, INetLogger
 
 			Log.RoomCreated(_logger, room.Code, session.Peer.Id, room.MaximumClients);
 
-			Send(session, MessageCodec.CreateRoomCreated(room.Code, room.HostToken!), DeliveryMethod.ReliableOrdered);
+			Send(session, MessageCodec.CreateRoomCreated(room.Code, room.HostToken), DeliveryMethod.ReliableOrdered);
 
 			foreach (PeerConnection client in room.ClientsByVirtualId.Values)
 			{
