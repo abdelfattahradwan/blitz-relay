@@ -116,7 +116,7 @@ internal sealed class Server : IDisposable, INetLogger
 		return 0;
 	}
 
-	public bool TryCreateReservedRoom(ushort maximumClients, string displayName, bool isPublic, IReadOnlyDictionary<string, string>? metadata, out RoomSnapshot? snapshot, out ErrorCode errorCode)
+	public RoomSnapshot CreateReservedRoom(ushort maximumClients, string displayName, bool isPublic, IReadOnlyDictionary<string, string>? metadata)
 	{
 		lock (_mutex)
 		{
@@ -151,11 +151,7 @@ internal sealed class Server : IDisposable, INetLogger
 
 			_roomsByCode.Add(room.Code, room);
 
-			snapshot = RoomSnapshot.FromRoom(room);
-
-			errorCode = default(ErrorCode);
-
-			return true;
+			return RoomSnapshot.FromRoom(room);
 		}
 	}
 

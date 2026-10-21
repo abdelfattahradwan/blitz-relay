@@ -1,6 +1,5 @@
 ﻿using BlitzRelay.Hosting;
 using BlitzRelay.Networking;
-using BlitzRelay.Protocol;
 using BlitzRelay.Rooms;
 using BlitzRelay.Serialization;
 using Microsoft.AspNetCore.Builder;
@@ -98,16 +97,7 @@ internal static class RelayHttpApi
 
 		if (Encoding.UTF8.GetByteCount(request.DisplayName) > 255) return Results.BadRequest($"{nameof(CreateRoomRequest.DisplayName)} must be at most 255 bytes when UTF-8 encoded.");
 
-		bool created = relayServer.TryCreateReservedRoom(request.MaximumClients, request.DisplayName, request.IsPublic, request.Metadata, out RoomSnapshot? snapshot, out ErrorCode errorCode);
-
-		if (created) return Results.Ok(snapshot);
-
-		return errorCode switch
-		{
-			ErrorCode.RoomExists => Results.Conflict(errorCode.ToString()),
-
-			_ => Results.BadRequest(errorCode.ToString()),
-		};
+		return Results.Ok(relayServer.CreateReservedRoom(request.MaximumClients, request.DisplayName, request.IsPublic, request.Metadata));
 	}
 
 	private static IResult GetRooms(HttpContext context, Server relayServer, byte[] adminTokenBytes)
