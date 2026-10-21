@@ -536,7 +536,7 @@ internal sealed class Server : IDisposable
 				return;
 			}
 
-			ExpirePendingHostClaimLocked(room, DateTimeOffset.UtcNow);
+			ExpirePendingHostClaimLocked(room, Environment.TickCount64);
 
 			if (room.Kind != RoomKind.PersistentReserved || room.HasActiveHost || !room.HasPendingHostClaim || !string.Equals(room.PendingHostClaimToken, claimToken, StringComparison.OrdinalIgnoreCase))
 			{
@@ -578,7 +578,7 @@ internal sealed class Server : IDisposable
 
 			if (!_roomsByCode.TryGetValue(roomCode, out Room? room)) return;
 
-			ExpirePendingHostClaimLocked(room, DateTimeOffset.UtcNow);
+			ExpirePendingHostClaimLocked(room, Environment.TickCount64);
 
 			if (room.Kind != RoomKind.PersistentReserved || !room.HasPendingHostClaim || !ReferenceEquals(room.PendingHostPromotionPeer, session) || !ReferenceEquals(session.Room, room) || !string.Equals(room.PendingHostClaimToken, claimToken, StringComparison.OrdinalIgnoreCase)) return;
 
@@ -617,7 +617,7 @@ internal sealed class Server : IDisposable
 				return;
 			}
 
-			ExpirePendingHostClaimLocked(room, DateTimeOffset.UtcNow);
+			ExpirePendingHostClaimLocked(room, Environment.TickCount64);
 
 			if (room.ClientsByVirtualId.Count >= room.MaximumClients)
 			{
@@ -874,7 +874,7 @@ internal sealed class Server : IDisposable
 	{
 		lock (_mutex)
 		{
-			DateTimeOffset now = DateTimeOffset.UtcNow;
+			long now = Environment.TickCount64;
 
 			foreach (Room room in _roomsByCode.Values)
 			{
@@ -883,9 +883,9 @@ internal sealed class Server : IDisposable
 		}
 	}
 
-	private void ExpirePendingHostClaimLocked(Room room, DateTimeOffset now)
+	private void ExpirePendingHostClaimLocked(Room room, long now)
 	{
-		if (!room.HasPendingHostClaim || room.PendingHostClaimExpiresAtUtc > now) return;
+		if (!room.HasPendingHostClaim || room.PendingHostClaimExpiresAt > now) return;
 
 		PeerConnection? pendingHostPromotionPeer = room.PendingHostPromotionPeer;
 
@@ -939,7 +939,7 @@ internal sealed class Server : IDisposable
 
 		room.PendingHostClaimToken = claimToken;
 
-		room.PendingHostClaimExpiresAtUtc = DateTimeOffset.UtcNow.Add(HostClaimTimeout);
+		room.PendingHostClaimExpiresAt = Environment.TickCount64 + (long)HostClaimTimeout.TotalMilliseconds;
 
 		room.PendingHostPromotionPeer = candidate;
 

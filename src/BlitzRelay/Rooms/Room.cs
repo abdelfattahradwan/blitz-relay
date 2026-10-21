@@ -28,7 +28,7 @@ internal sealed class Room
 
 	public string? PendingHostClaimToken { get; set; }
 
-	public DateTimeOffset? PendingHostClaimExpiresAtUtc { get; set; }
+	public long? PendingHostClaimExpiresAt { get; set; }
 
 	public PeerConnection? PendingHostPromotionPeer { get; set; }
 
@@ -38,7 +38,7 @@ internal sealed class Room
 
 	public bool HasPendingHostClaim
 	{
-		get => !string.IsNullOrWhiteSpace(PendingHostClaimToken) && PendingHostClaimExpiresAtUtc is not null;
+		get => !string.IsNullOrWhiteSpace(PendingHostClaimToken) && PendingHostClaimExpiresAt is not null;
 	}
 
 	public bool HasActiveHost
@@ -60,7 +60,7 @@ internal sealed class Room
 	{
 		PendingHostClaimToken = null;
 
-		PendingHostClaimExpiresAtUtc = null;
+		PendingHostClaimExpiresAt = null;
 
 		PendingHostPromotionPeer = null;
 
