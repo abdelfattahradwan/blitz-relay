@@ -435,6 +435,8 @@ internal sealed class Server : IDisposable
 				break;
 			}
 		}
+
+		_netManager.TriggerUpdate();
 	}
 
 	private void HandleNetworkError(IPEndPoint endPoint, SocketError socketError)
@@ -1037,8 +1039,6 @@ internal sealed class Server : IDisposable
 
 			client.Peer.SendPooledPacket(pooledPacket, written);
 
-			_netManager.TriggerUpdate();
-
 			return;
 		}
 
@@ -1099,8 +1099,6 @@ internal sealed class Server : IDisposable
 				int written = MessageCodec.WriteClientData(pooledPacket.Data.AsSpan(pooledPacket.UserDataOffset, payloadLength), gameChannel, gamePayload);
 
 				clients[i].Peer.SendPooledPacket(pooledPacket, written);
-
-				_netManager.TriggerUpdate();
 			}
 
 			return;
@@ -1154,8 +1152,6 @@ internal sealed class Server : IDisposable
 			int written = MessageCodec.WriteHostData(pooledPacket.Data.AsSpan(pooledPacket.UserDataOffset, payloadLength), virtualClientId, gameChannel, gamePayload);
 
 			host.Peer.SendPooledPacket(pooledPacket, written);
-
-			_netManager.TriggerUpdate();
 
 			return;
 		}
@@ -1247,8 +1243,6 @@ internal sealed class Server : IDisposable
 		try
 		{
 			session.Peer.Send(payload, MessageCodec.RelayWireChannel, deliveryMethod);
-
-			_netManager.TriggerUpdate();
 		}
 		catch (TooBigPacketException tooBigPacketException)
 		{
