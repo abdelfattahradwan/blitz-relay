@@ -730,7 +730,7 @@ public static class MessageCodec
 
 	public static bool IsUnreliableGameChannel(byte gameChannel)
 	{
-		return gameChannel == (byte)GameChannel.Unreliable;
+		return gameChannel is (byte)GameChannel.Unreliable or (byte)GameChannel.UnreliableSequenced;
 	}
 
 	private static byte[] CreateVirtualClientMessage(MessageType messageType, int virtualClientId)

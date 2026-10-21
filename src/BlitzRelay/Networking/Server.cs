@@ -695,7 +695,7 @@ internal sealed class Server : IDisposable
 
 		MessageCodec.ReadHostData(payload, out int targetVirtualClientId, out byte gameChannel, out ReadOnlySpan<byte> gamePayload);
 
-		if (gameChannel is not ((byte)GameChannel.Reliable or (byte)GameChannel.Unreliable) || deliveryMethod != MapDeliveryMethod(gameChannel)) return;
+		if (gameChannel is not ((byte)GameChannel.Reliable or (byte)GameChannel.Unreliable or (byte)GameChannel.UnreliableSequenced) || deliveryMethod != MapDeliveryMethod(gameChannel)) return;
 
 		bool isBroadcast = targetVirtualClientId == MessageCodec.BroadcastVirtualClientId;
 
@@ -790,7 +790,7 @@ internal sealed class Server : IDisposable
 
 		MessageCodec.ReadClientData(payload, out byte gameChannel, out ReadOnlySpan<byte> gamePayload);
 
-		if (gameChannel is not ((byte)GameChannel.Reliable or (byte)GameChannel.Unreliable) || deliveryMethod != MapDeliveryMethod(gameChannel)) return;
+		if (gameChannel is not ((byte)GameChannel.Reliable or (byte)GameChannel.Unreliable or (byte)GameChannel.UnreliableSequenced) || deliveryMethod != MapDeliveryMethod(gameChannel)) return;
 
 		PeerConnection host;
 
@@ -1011,7 +1011,14 @@ internal sealed class Server : IDisposable
 
 	private static DeliveryMethod MapDeliveryMethod(byte gameChannel)
 	{
-		return MessageCodec.IsUnreliableGameChannel(gameChannel) ? DeliveryMethod.Unreliable : DeliveryMethod.ReliableOrdered;
+		return gameChannel switch
+		{
+			(byte)GameChannel.Unreliable => DeliveryMethod.Unreliable,
+
+			(byte)GameChannel.UnreliableSequenced => DeliveryMethod.Sequenced,
+
+			_ => DeliveryMethod.ReliableOrdered,
+		};
 	}
 
 	private static PeerConnection GetOrCreateSession(NetPeer peer)
@@ -1203,7 +1210,7 @@ internal sealed class Server : IDisposable
 
 	private bool ShouldDropUnreliableRelayPayload(PeerConnection recipient, int payloadLength, DeliveryMethod deliveryMethod)
 	{
-		if (deliveryMethod != DeliveryMethod.Unreliable) return false;
+		if (deliveryMethod is not (DeliveryMethod.Unreliable or DeliveryMethod.Sequenced)) return false;
 
 		int maxUnreliablePayloadLength = Math.Min(NetConstants.MaxUnreliableDataSize, recipient.Peer.GetMaxSinglePacketSize(deliveryMethod));
 

@@ -11,7 +11,7 @@ internal static class RelayBackpressurePolicy
 
 	public static bool ShouldDropUnreliableForReliableBackpressure(int reliableQueuePackets, DeliveryMethod deliveryMethod)
 	{
-		return deliveryMethod == DeliveryMethod.Unreliable && reliableQueuePackets >= ReliableQueuePacketsBeforeDroppingUnreliable;
+		return deliveryMethod is DeliveryMethod.Unreliable or DeliveryMethod.Sequenced && reliableQueuePackets >= ReliableQueuePacketsBeforeDroppingUnreliable;
 	}
 
 	public static bool ShouldDisconnectReliableForBackpressure(int reliableQueuePackets, DeliveryMethod deliveryMethod)
