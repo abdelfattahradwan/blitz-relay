@@ -30,13 +30,17 @@ internal sealed class Server : IDisposable, INetLogger
 
 	private readonly string _connectionKey;
 
+	private readonly TimeProvider _timeProvider;
+
 	private bool _disposed;
 
-	public Server(int port, string connectionKey, ILogger<Server> logger)
+	public Server(int port, string connectionKey, TimeProvider timeProvider, ILogger<Server> logger)
 	{
 		_port = port;
 
 		_connectionKey = connectionKey;
+
+		_timeProvider = timeProvider;
 
 		_logger = logger;
 
@@ -563,7 +567,7 @@ internal sealed class Server : IDisposable, INetLogger
 				return;
 			}
 
-			ExpirePendingHostClaimLocked(room, Environment.TickCount64);
+			ExpirePendingHostClaimLocked(room, _timeProvider.GetTimestamp());
 
 			if (room.Kind != RoomKind.PersistentReserved || room.HasActiveHost || !room.HasPendingHostClaim || !CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(room.PendingHostClaimToken.AsSpan()), MemoryMarshal.AsBytes(claimToken.AsSpan())))
 			{
@@ -605,7 +609,7 @@ internal sealed class Server : IDisposable, INetLogger
 
 			if (!_roomsByCode.TryGetValue(roomCode, out Room? room)) return;
 
-			ExpirePendingHostClaimLocked(room, Environment.TickCount64);
+			ExpirePendingHostClaimLocked(room, _timeProvider.GetTimestamp());
 
 			if (room.Kind != RoomKind.PersistentReserved || !room.HasPendingHostClaim || !ReferenceEquals(room.PendingHostPromotionPeer, session) || !ReferenceEquals(session.Room, room) || !CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(room.PendingHostClaimToken.AsSpan()), MemoryMarshal.AsBytes(claimToken.AsSpan()))) return;
 
@@ -644,7 +648,7 @@ internal sealed class Server : IDisposable, INetLogger
 				return;
 			}
 
-			ExpirePendingHostClaimLocked(room, Environment.TickCount64);
+			ExpirePendingHostClaimLocked(room, _timeProvider.GetTimestamp());
 
 			if (room.ClientsByVirtualId.Count >= room.MaximumClients)
 			{
@@ -898,7 +902,7 @@ internal sealed class Server : IDisposable, INetLogger
 		{
 			lock (_mutex)
 			{
-				long now = Environment.TickCount64;
+				long now = _timeProvider.GetTimestamp();
 
 				foreach (Room room in _roomsByCode.Values)
 				{
@@ -914,7 +918,7 @@ internal sealed class Server : IDisposable, INetLogger
 
 	private void ExpirePendingHostClaimLocked(Room room, long now)
 	{
-		if (!room.HasPendingHostClaim || room.PendingHostClaimExpiresAt > now) return;
+		if (!room.HasPendingHostClaim || _timeProvider.GetElapsedTime(room.PendingHostClaimStartedAt.GetValueOrDefault(), now) < HostClaimTimeout) return;
 
 		PeerConnection? pendingHostPromotionPeer = room.PendingHostPromotionPeer;
 
@@ -968,7 +972,7 @@ internal sealed class Server : IDisposable, INetLogger
 
 		room.PendingHostClaimToken = claimToken;
 
-		room.PendingHostClaimExpiresAt = Environment.TickCount64 + (long)HostClaimTimeout.TotalMilliseconds;
+		room.PendingHostClaimStartedAt = _timeProvider.GetTimestamp();
 
 		room.PendingHostPromotionPeer = candidate;
 

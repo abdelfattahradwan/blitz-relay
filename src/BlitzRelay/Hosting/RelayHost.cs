@@ -46,7 +46,7 @@ internal static class RelayHost
 			   .AddConsole();
 
 		builder.Services
-			   .AddSingleton(serviceProvider => new Server(options.UdpPort, options.ConnectionKey, serviceProvider.GetRequiredService<ILogger<Server>>()))
+			   .AddSingleton(serviceProvider => new Server(options.UdpPort, options.ConnectionKey, TimeProvider.System, serviceProvider.GetRequiredService<ILogger<Server>>()))
 			   .AddSingleton<RelayServerService>()
 			   .AddHostedService(serviceProvider => serviceProvider.GetRequiredService<RelayServerService>());
 	}
