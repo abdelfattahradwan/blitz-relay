@@ -1007,11 +1007,11 @@ internal sealed class Server : IDisposable
 
 	private static PeerConnection GetOrCreateSession(NetPeer peer)
 	{
-		PeerConnection session = peer.Tag as PeerConnection ?? new PeerConnection(peer);
+		if (peer.Tag is PeerConnection session) return session;
 
-		peer.Tag = session;
+		PeerConnection newSession = new(peer);
 
-		return session;
+		return Interlocked.CompareExchange(ref peer.Tag, newSession, null) as PeerConnection ?? newSession;
 	}
 
 	private void SendClientData(PeerConnection client, byte gameChannel, ReadOnlySpan<byte> gamePayload, DeliveryMethod deliveryMethod)
