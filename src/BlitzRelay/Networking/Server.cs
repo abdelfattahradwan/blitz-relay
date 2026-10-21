@@ -82,6 +82,11 @@ internal sealed class Server : IDisposable, INetLogger
 		};
 	}
 
+	public int LocalPort
+	{
+		get => _netManager.LocalPort;
+	}
+
 	public async Task<int> RunAsync(CancellationToken cancellationToken)
 	{
 		ObjectDisposedException.ThrowIf(_disposed, this);
