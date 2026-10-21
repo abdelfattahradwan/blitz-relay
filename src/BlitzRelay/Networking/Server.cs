@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
 namespace BlitzRelay.Networking;
@@ -197,7 +198,7 @@ internal sealed class Server : IDisposable
 	{
 		lock (_mutex)
 		{
-			return _roomsByCode.TryGetValue(roomCode, out Room? room) && !string.IsNullOrWhiteSpace(room.HostToken) && string.Equals(room.HostToken, roomHostToken, StringComparison.OrdinalIgnoreCase);
+			return _roomsByCode.TryGetValue(roomCode, out Room? room) && !string.IsNullOrWhiteSpace(room.HostToken) && CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(room.HostToken.AsSpan()), MemoryMarshal.AsBytes(roomHostToken.AsSpan()));
 		}
 	}
 
@@ -538,7 +539,7 @@ internal sealed class Server : IDisposable
 
 			ExpirePendingHostClaimLocked(room, Environment.TickCount64);
 
-			if (room.Kind != RoomKind.PersistentReserved || room.HasActiveHost || !room.HasPendingHostClaim || !string.Equals(room.PendingHostClaimToken, claimToken, StringComparison.OrdinalIgnoreCase))
+			if (room.Kind != RoomKind.PersistentReserved || room.HasActiveHost || !room.HasPendingHostClaim || !CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(room.PendingHostClaimToken.AsSpan()), MemoryMarshal.AsBytes(claimToken.AsSpan())))
 			{
 				Send(session, MessageCodec.GetErrorMessage(ErrorCode.InvalidHostClaim), DeliveryMethod.ReliableOrdered);
 
@@ -580,7 +581,7 @@ internal sealed class Server : IDisposable
 
 			ExpirePendingHostClaimLocked(room, Environment.TickCount64);
 
-			if (room.Kind != RoomKind.PersistentReserved || !room.HasPendingHostClaim || !ReferenceEquals(room.PendingHostPromotionPeer, session) || !ReferenceEquals(session.Room, room) || !string.Equals(room.PendingHostClaimToken, claimToken, StringComparison.OrdinalIgnoreCase)) return;
+			if (room.Kind != RoomKind.PersistentReserved || !room.HasPendingHostClaim || !ReferenceEquals(room.PendingHostPromotionPeer, session) || !ReferenceEquals(session.Room, room) || !CryptographicOperations.FixedTimeEquals(MemoryMarshal.AsBytes(room.PendingHostClaimToken.AsSpan()), MemoryMarshal.AsBytes(claimToken.AsSpan()))) return;
 
 			room.PendingHostPromotionAckReceived = true;
 
