@@ -488,7 +488,7 @@ internal sealed class Server : IDisposable, INetLogger
 		{
 			Log.InvalidHostRegister(_logger, session.Peer.Id);
 
-			Send(session, MessageCodec.GetErrorMessage(ErrorCode.RoomNotFound), DeliveryMethod.ReliableOrdered);
+			Send(session, MessageCodec.GetErrorMessage(ErrorCode.InvalidMaximumClients), DeliveryMethod.ReliableOrdered);
 
 			return;
 		}
