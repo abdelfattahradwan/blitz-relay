@@ -10,7 +10,7 @@ using System.Security.Cryptography;
 
 namespace BlitzRelay.Networking;
 
-internal sealed class Server : IDisposable
+internal sealed class Server : IDisposable, INetLogger
 {
 	private static readonly TimeSpan PollDelay = TimeSpan.FromMilliseconds(15);
 
@@ -39,6 +39,8 @@ internal sealed class Server : IDisposable
 		_connectionKey = connectionKey;
 
 		_logger = logger;
+
+		NetDebug.Logger = this;
 
 		_roomsByCode = new Dictionary<string, Room>(StringComparer.OrdinalIgnoreCase);
 
@@ -251,6 +253,22 @@ internal sealed class Server : IDisposable
 		_disposed = true;
 
 		_netManager.Stop();
+	}
+
+	void INetLogger.WriteNet(NetLogLevel level, string str, params object[] args)
+	{
+		LogLevel logLevel = level switch
+		{
+			NetLogLevel.Error => LogLevel.Error,
+
+			NetLogLevel.Warning => LogLevel.Warning,
+
+			NetLogLevel.Info => LogLevel.Information,
+
+			_ => LogLevel.Trace,
+		};
+
+		Log.LiteNetLibMessage(_logger, logLevel, str);
 	}
 
 	private void HandleConnectionRequest(ConnectionRequest request)

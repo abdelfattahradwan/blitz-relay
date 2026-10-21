@@ -129,4 +129,7 @@ internal static partial class Log
 
 	[LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception in {Handler}.")]
 	public static partial void UnhandledHandlerException(ILogger logger, string handler, Exception exception);
+
+	[LoggerMessage(Message = "LiteNetLib: {Message}")]
+	public static partial void LiteNetLibMessage(ILogger logger, LogLevel level, string message);
 }
