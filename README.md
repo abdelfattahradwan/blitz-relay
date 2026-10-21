@@ -1,7 +1,7 @@
 # Blitz Relay
 
 Blitz Relay is a relay server for multiplayer game traffic, written in C# and .NET. It handles room management and data
-relay between game clients, supporting both reliable and unreliable delivery modes.
+relay between game clients, supporting reliable, unreliable, and unreliable sequenced delivery modes.
 
 ## Features
 
@@ -13,16 +13,18 @@ relay between game clients, supporting both reliable and unreliable delivery mod
 - **Host Migration**: Persistent rooms automatically promote the longest-connected client to host when the host
   disconnects.
 - **Dual Protocol Support**: UDP for low-latency game traffic relay, HTTP for administrative room management.
-- **Configurable Delivery**: Game data can be sent reliably or unreliably via separate channels.
+- **Configurable Delivery**: Game data can be sent reliably, unreliably, or unreliably sequenced via separate channels.
 - **Simple Client Integration**: A minimal binary protocol using the `BlitzRelay.Protocol` library.
-- **AOT Published**: The server is compiled ahead-of-time for fast startup and minimal memory usage.
+- **Native AOT Builds**: The `native` release flavour is compiled ahead-of-time for fast startup and minimal memory
+  usage.
 
 ## Architecture
 
 The server consists of two main components:
 
 1. **UDP Relay Server** (port 7770 by default): Handles room management and game traffic relay between connected peers.
-2. **HTTP Admin API** (port 7771 by default): Provides REST endpoints for creating, listing, and deleting rooms.
+2. **HTTP Admin API** (port 7771 by default): Provides REST endpoints for managing rooms. It can be disabled with
+   `--disable-http`.
 
 ### Room Lifecycle
 
@@ -56,20 +58,23 @@ $env:BLITZ_RELAY_CONNECTION_KEY = "your-connection-key"
 $env:BLITZ_RELAY_HTTP_ADMIN_TOKEN = "your-admin-token"
 ```
 
+`BLITZ_RELAY_HTTP_ADMIN_TOKEN` is only required when the HTTP API is enabled.
+
 Then run the server:
 
 ```bash
-BlitzRelay [--port <udp-port>] [--http-port <http-port>] [--log-level <level>] [--cors <config-file>]
+BlitzRelay [--port <udp-port>] [--http-port <http-port>] [--disable-http] [--log-level <level>] [--cors <config-file>]
 ```
 
 **Command-Line Options**
 
-| Option        | Short | Default     | Description                                                         |
-|---------------|-------|-------------|---------------------------------------------------------------------|
-| `--port`      | `-p`  | 7770        | UDP port for relay traffic                                          |
-| `--http-port` |       | 7771        | HTTP port for admin API                                             |
-| `--log-level` | `-l`  | Information | Logging level (Trace, Debug, Information, Warning, Error, Critical) |
-| `--cors`      |       |             | Optional path to a JSON file describing the HTTP API CORS policy    |
+| Option           | Short | Default     | Description                                                         |
+|------------------|-------|-------------|---------------------------------------------------------------------|
+| `--port`         | `-p`  | 7770        | UDP port for relay traffic                                          |
+| `--http-port`    |       | 7771        | HTTP port for admin API                                             |
+| `--disable-http` |       |             | Run the relay without the HTTP API                                  |
+| `--log-level`    | `-l`  | Information | Logging level (Trace, Debug, Information, Warning, Error, Critical) |
+| `--cors`         |       |             | Optional path to a JSON file describing the HTTP API CORS policy    |
 
 ### CORS
 
@@ -165,7 +170,7 @@ additionally accept the room's host token.
 ```json
 {
   "code": "ABC12345",
-  "kind": "PersistentReserved",
+  "kind": 1,
   "isPublic": true,
   "displayName": "My Game Room",
   "maximumClients": 8,
@@ -186,17 +191,17 @@ Clients use the `BlitzRelay.Protocol` library to communicate with the relay serv
 1. Connect to the relay using the UDP port and connection key.
 2. To host: send a `HostRegister` message with the maximum number of clients.
 3. To join: send a `ClientJoin` message with the room code.
-4. Send game data using `HostData` (from host) or `ClientData` (from clients).
+4. Send game data using `Data` messages, written with `WriteHostData` (from host) or `WriteClientData` (from clients).
 5. Handle incoming `Connected`, `Disconnected`, and `Data` messages.
 
 See the `BlitzRelay.Protocol` library for the full message codec API.
 
 ## Configuration Reference
 
-| Environment Variable           | Description                                         |
-|--------------------------------|-----------------------------------------------------|
-| `BLITZ_RELAY_CONNECTION_KEY`   | Key used to authenticate UDP connections (required) |
-| `BLITZ_RELAY_HTTP_ADMIN_TOKEN` | Token for HTTP admin API authentication (required)  |
+| Environment Variable           | Description                                                                 |
+|--------------------------------|-----------------------------------------------------------------------------|
+| `BLITZ_RELAY_CONNECTION_KEY`   | Key used to authenticate UDP connections (required)                         |
+| `BLITZ_RELAY_HTTP_ADMIN_TOKEN` | Token for HTTP admin API authentication (required unless `--disable-http`)  |
 
 ## Acknowledgements
 
