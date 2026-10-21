@@ -24,6 +24,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="BlitzRelay.Tests" />
+        <InternalsVisibleTo Include="BlitzRelay.LoadHarness" />
     </ItemGroup>
 
     <PropertyGroup Condition="'$(Flavour)' == 'slim'">
