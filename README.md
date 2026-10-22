@@ -77,6 +77,8 @@ BlitzRelay [--port <udp-port>] [--http-port <http-port>] [--disable-http] [--log
 | `--log-level`      | `-l`  | Information | Logging level (Trace, Debug, Information, Warning, Error, Critical)  |
 | `--cors`           |       |             | Optional path to a JSON file describing the HTTP API CORS policy     |
 | `--client-details` |       | Ids         | Client details listed by `GET /rooms/{roomCode}/clients` (see below) |
+| `--version`        |       |             | Print the relay's version                                            |
+| `--help`           | `-h`  |             | Show help and usage information                                      |
 
 ### CORS
 
@@ -88,8 +90,7 @@ If you do not pass `--cors`, Blitz Relay uses a permissive CORS policy for the H
 - Credentials are not enabled.
 
 This default keeps setup simple for local tools, browser dashboards, and hosted admin panels. The HTTP API still
-requires
-the configured `Bearer` token for protected endpoints.
+requires the configured `Bearer` token for protected endpoints.
 
 If you need to restrict browser access, create a JSON file and pass it with `--cors`:
 
@@ -119,9 +120,8 @@ Example `cors.json`:
 ```
 
 All fields are optional. If `allowedOrigins`, `allowedMethods`, or `allowedHeaders` is omitted or empty, that part of
-the
-policy defaults to allowing any value. Set `allowCredentials` to `true` only when you list specific origins; browsers do
-not allow credentials with a wildcard origin.
+the policy defaults to allowing any value. Set `allowCredentials` to `true` only when you list specific origins;
+browsers do not allow credentials with a wildcard origin.
 
 ### Client Details
 
@@ -142,8 +142,7 @@ endpoint only accepts the admin token, not a room's host token.
 
 Most endpoints require a `Bearer` token in the `Authorization` header, matching the `BLITZ_RELAY_HTTP_ADMIN_TOKEN`
 environment variable. `DELETE /rooms/{roomCode}`, `PATCH /rooms/{roomCode}`, and
-`DELETE /rooms/{roomCode}/clients/{virtualClientId}`
-additionally accept the room's host token.
+`DELETE /rooms/{roomCode}/clients/{virtualClientId}` additionally accept the room's host token.
 
 | Method | Endpoint                                      | Description                               |
 |--------|-----------------------------------------------|-------------------------------------------|
