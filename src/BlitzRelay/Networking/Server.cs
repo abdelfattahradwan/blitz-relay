@@ -436,6 +436,8 @@ internal sealed class Server : IDisposable, INetLogger
 
 	private void HandleNetworkReceive(NetPeer peer, NetPacketReader reader, byte channelNumber, DeliveryMethod deliveryMethod)
 	{
+		if (peer.ConnectionState != ConnectionState.Connected) return;
+
 		PeerConnection session = GetOrCreateSession(peer);
 
 		ReadOnlySpan<byte> payload = reader.GetRemainingBytesSpan();
