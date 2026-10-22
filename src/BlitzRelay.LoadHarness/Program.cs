@@ -26,6 +26,8 @@ internal static class Program
 
 		Option<int> relayPortOption = new("--relay-port")
 		{
+			Description = "Port of the external relay.",
+
 			DefaultValueFactory = _ => 7770,
 		};
 
@@ -38,6 +40,8 @@ internal static class Program
 
 		Option<int> roomsOption = new("--rooms")
 		{
+			Description = "Number of rooms.",
+
 			DefaultValueFactory = _ => 50,
 		};
 
@@ -64,6 +68,8 @@ internal static class Program
 
 		Option<GameChannel> channelOption = new("--channel")
 		{
+			Description = "Game channel of every message: Reliable, Unreliable, or UnreliableSequenced.",
+
 			DefaultValueFactory = _ => GameChannel.Unreliable,
 		};
 
@@ -176,11 +182,14 @@ internal static class Program
 
 		try
 		{
-			return Run(settings with
+			LoadSettings loadSettings = settings with
 			{
 				RelayPort = server.LocalPort,
-				ConnectionKey = InProcessConnectionKey
-			}, "in-process");
+
+				ConnectionKey = InProcessConnectionKey,
+			};
+
+			return Run(loadSettings, "in-process");
 		}
 		finally
 		{
@@ -207,7 +216,8 @@ internal static class Program
 			threads[i] = new Thread(workers[i].Run)
 			{
 				IsBackground = true,
-				Name = $"LoadWorker-{i}"
+
+				Name = $"LoadWorker-{i}",
 			};
 
 			threads[i].Start();
@@ -281,7 +291,7 @@ internal static class Program
 
 	private static void WriteDirection(string name, LoadStatistics statistics, TimeSpan duration)
 	{
-		long[] latencies = statistics.Latencies.ToArray();
+		long[] latencies = [..statistics.Latencies];
 
 		Array.Sort(latencies);
 

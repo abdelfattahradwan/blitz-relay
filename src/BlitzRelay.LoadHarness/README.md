@@ -44,16 +44,16 @@ Unreliable payloads must fit in a single datagram once the relay adds its header
 
 ## How It Works
 
-- Every tick, each host broadcasts a message to its clients, and each client sends a message to its host. Every
-  message starts with its send timestamp.
+- Every tick, each host broadcasts a message to its clients, and each client sends a message to its host. Every message
+  starts with its send timestamp.
 - The run is a warm-up, a measured window, and a one-second drain for messages still in flight. Only messages sent
   during the measured window are counted.
 - Simulated peers run LiteNetLib in manual mode, so a few harness threads drive every peer.
 
 ## Output
 
-- Delivered and expected messages per direction, messages per second, and latency percentiles (p50, p90, p99, p99.9,
-  and max).
+- Delivered and expected messages per direction, messages per second, and latency percentiles (p50, p90, p99, p99.9, and
+  max).
 - Peers disconnected during the run, for example by the relay's reliable backlog limit.
 - Allocated bytes and GC collections over the measured window. When the relay runs in-process, these include the
   simulated peers.
