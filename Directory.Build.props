@@ -4,7 +4,6 @@
         <Authors>Abdelfattah Radwan</Authors>
         <Company>Abdelfattah Radwan</Company>
         <Product>Blitz Relay</Product>
-        <Description>Relay server for multiplayer game traffic</Description>
         <Copyright>Copyright © 2026 Abdelfattah Radwan</Copyright>
         <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     </PropertyGroup>

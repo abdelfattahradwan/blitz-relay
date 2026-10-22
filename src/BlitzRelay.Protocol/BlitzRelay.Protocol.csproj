@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
+        <Description>Wire protocol shared by Blitz Relay and its transports</Description>
     </PropertyGroup>
 
     <ItemGroup>
