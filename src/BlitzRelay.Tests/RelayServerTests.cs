@@ -685,6 +685,28 @@ public sealed class RelayServerTests
 	}
 
 	[TestMethod]
+	public async Task HostClaim_BeforeThePromotedClientIsDisconnected_DisconnectsIt()
+	{
+		await using TestRelay relay = new();
+
+		RoomSnapshot reservedRoom = relay.Server.CreateReservedRoom(4, "Reserved", false, null);
+
+		using RelayTestPeer promoted = await relay.ConnectAsync();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		string claimToken = await JoinAsPromotedAsync(promoted, reservedRoom.Code);
+
+		host.Send(MessageCodec.CreateHostClaim(reservedRoom.Code, claimToken));
+
+		Assert.IsTrue(MessageCodec.TryReadRoomCreated(await host.ReceiveAsync(), out _, out _));
+
+		await promoted.WaitForDisconnectAsync();
+
+		await host.AssertNothingReceivedAsync();
+	}
+
+	[TestMethod]
 	public async Task HasRoomHostToken_OnlyAcceptsTheExactHostToken()
 	{
 		await using TestRelay relay = new();

@@ -614,7 +614,16 @@ internal sealed class Server : IDisposable, INetLogger
 				return;
 			}
 
+			PeerConnection? pendingHostPromotionPeer = room.PendingHostPromotionPeer;
+
 			room.ClearPendingHostClaim();
+
+			if (pendingHostPromotionPeer is not null)
+			{
+				pendingHostPromotionPeer.Clear();
+
+				DisconnectPeer(pendingHostPromotionPeer);
+			}
 
 			room.Host = session;
 
