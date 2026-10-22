@@ -7,7 +7,7 @@ info:
     Most endpoints require a Bearer token matching `BLITZ_RELAY_HTTP_ADMIN_TOKEN`.
     `DELETE /rooms/{roomCode}`, `PATCH /rooms/{roomCode}`, and
     `DELETE /rooms/{roomCode}/clients/{virtualClientId}` also accept the room's host token.
-  version: 1.0.0
+  version: 1.4.0
 
 servers:
   - url: http://localhost:7771
