@@ -475,6 +475,74 @@ public sealed class RelayServerTests
 		Assert.IsFalse(relay.Server.DeleteRoom(roomCode));
 	}
 
+	[TestMethod]
+	public async Task GetRoomClientSnapshots_WhenRoomDoesNotExist_ReturnsNull()
+	{
+		await using TestRelay relay = new();
+
+		Assert.IsNull(relay.Server.GetRoomClientSnapshots<ClientSnapshot>("MISSING"));
+	}
+
+	[TestMethod]
+	public async Task GetRoomClientSnapshots_WithIds_ReturnsVirtualClientIds()
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		int virtualClientId = await JoinAsync(host, client, roomCode);
+
+		ClientSnapshot[]? clientSnapshots = relay.Server.GetRoomClientSnapshots<ClientSnapshot>(roomCode);
+
+		Assert.IsNotNull(clientSnapshots);
+
+		Assert.AreSequenceEqual([new ClientSnapshot(virtualClientId)], clientSnapshots);
+	}
+
+	[TestMethod]
+	public async Task GetRoomClientSnapshots_WithIpAddresses_ReturnsVirtualClientIdsAndIpAddresses()
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		int virtualClientId = await JoinAsync(host, client, roomCode);
+
+		ClientIpAddressSnapshot[]? clientSnapshots = relay.Server.GetRoomClientSnapshots<ClientIpAddressSnapshot>(roomCode);
+
+		Assert.IsNotNull(clientSnapshots);
+
+		Assert.AreSequenceEqual([new ClientIpAddressSnapshot(virtualClientId, "127.0.0.1")], clientSnapshots);
+	}
+
+	[TestMethod]
+	public async Task GetRoomClientSnapshots_WithIpEndpoints_ReturnsVirtualClientIdsIpAddressesAndPorts()
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		int virtualClientId = await JoinAsync(host, client, roomCode);
+
+		ClientIpEndpointSnapshot[]? clientSnapshots = relay.Server.GetRoomClientSnapshots<ClientIpEndpointSnapshot>(roomCode);
+
+		Assert.IsNotNull(clientSnapshots);
+
+		Assert.AreSequenceEqual([new ClientIpEndpointSnapshot(virtualClientId, "127.0.0.1", client.LocalPort)], clientSnapshots);
+	}
+
 	private static async Task<string> RegisterHostAsync(RelayTestPeer host, int maximumClients)
 	{
 		host.Send(MessageCodec.CreateHostRegister(maximumClients));

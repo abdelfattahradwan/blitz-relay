@@ -40,6 +40,11 @@ internal sealed class RelayTestPeer : IDisposable
 		};
 	}
 
+	public int LocalPort
+	{
+		get => _netManager.LocalPort;
+	}
+
 	private NetPeer Peer
 	{
 		get => _connected.Task.IsCompletedSuccessfully ? _connected.Task.Result : throw new InvalidOperationException("The test peer is not connected.");

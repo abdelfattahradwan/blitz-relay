@@ -189,6 +189,25 @@ internal sealed class Server : IDisposable, INetLogger
 		}
 	}
 
+	public TClientSnapshot[]? GetRoomClientSnapshots<TClientSnapshot>(string roomCode) where TClientSnapshot : IClientSnapshot<TClientSnapshot>
+	{
+		lock (_mutex)
+		{
+			if (!_roomsByCode.TryGetValue(roomCode, out Room? room)) return null;
+
+			TClientSnapshot[] clientSnapshots = new TClientSnapshot[room.ClientsByVirtualId.Count];
+
+			int index = 0;
+
+			foreach (PeerConnection client in room.ClientsByVirtualId.Values)
+			{
+				clientSnapshots[index++] = TClientSnapshot.FromClient(client);
+			}
+
+			return clientSnapshots;
+		}
+	}
+
 	public bool DeleteRoom(string roomCode)
 	{
 		lock (_mutex)
