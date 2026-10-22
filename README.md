@@ -64,17 +64,19 @@ Then run the server:
 
 ```bash
 BlitzRelay [--port <udp-port>] [--http-port <http-port>] [--disable-http] [--log-level <level>] [--cors <config-file>]
+           [--client-details <level>]
 ```
 
 **Command-Line Options**
 
-| Option           | Short | Default     | Description                                                         |
-|------------------|-------|-------------|---------------------------------------------------------------------|
-| `--port`         | `-p`  | 7770        | UDP port for relay traffic                                          |
-| `--http-port`    |       | 7771        | HTTP port for admin API                                             |
-| `--disable-http` |       |             | Run the relay without the HTTP API                                  |
-| `--log-level`    | `-l`  | Information | Logging level (Trace, Debug, Information, Warning, Error, Critical) |
-| `--cors`         |       |             | Optional path to a JSON file describing the HTTP API CORS policy    |
+| Option             | Short | Default     | Description                                                          |
+|--------------------|-------|-------------|----------------------------------------------------------------------|
+| `--port`           | `-p`  | 7770        | UDP port for relay traffic                                           |
+| `--http-port`      |       | 7771        | HTTP port for admin API                                              |
+| `--disable-http`   |       |             | Run the relay without the HTTP API                                   |
+| `--log-level`      | `-l`  | Information | Logging level (Trace, Debug, Information, Warning, Error, Critical)  |
+| `--cors`           |       |             | Optional path to a JSON file describing the HTTP API CORS policy     |
+| `--client-details` |       | Ids         | Client details listed by `GET /rooms/{roomCode}/clients` (see below) |
 
 ### CORS
 
@@ -121,6 +123,21 @@ the
 policy defaults to allowing any value. Set `allowCredentials` to `true` only when you list specific origins; browsers do
 not allow credentials with a wildcard origin.
 
+### Client Details
+
+`GET /rooms/{roomCode}/clients` lists the clients connected to a room. To protect your players' privacy, choose how
+much it reveals with `--client-details` or the `BLITZ_RELAY_CLIENT_DETAILS` environment variable. The option takes
+precedence over the environment variable.
+
+| Level         | Fields of each client                  |
+|---------------|----------------------------------------|
+| `Ids`         | `virtualClientId` (default)            |
+| `IpAddresses` | `virtualClientId`, `ipAddress`         |
+| `IpEndpoints` | `virtualClientId`, `ipAddress`, `port` |
+
+Each level returns only its own fields. Fields of a more detailed level are never included, not even as `null`. The
+endpoint only accepts the admin token, not a room's host token.
+
 ### HTTP Admin API
 
 Most endpoints require a `Bearer` token in the `Authorization` header, matching the `BLITZ_RELAY_HTTP_ADMIN_TOKEN`
@@ -136,6 +153,7 @@ additionally accept the room's host token.
 | GET    | `/rooms/{roomCode}`                           | Get details of a specific room            |
 | DELETE | `/rooms/{roomCode}`                           | Delete a room                             |
 | PATCH  | `/rooms/{roomCode}`                           | Update a room's display name and metadata |
+| GET    | `/rooms/{roomCode}/clients`                   | List a room's clients                     |
 | DELETE | `/rooms/{roomCode}/clients/{virtualClientId}` | Kick a client from a room                 |
 
 **Create Room Request**
@@ -181,6 +199,18 @@ additionally accept the room's host token.
 }
 ```
 
+**Clients Response** (with `--client-details IpEndpoints`)
+
+```json
+[
+  {
+    "virtualClientId": 1,
+    "ipAddress": "127.0.0.1",
+    "port": 51234
+  }
+]
+```
+
 For the complete, interactive API reference, see the [OpenAPI specification](docs/relay-http-api/openapi.yaml) or
 the [Redoc documentation](docs/relay-http-api/redoc-static.html).
 
@@ -202,6 +232,7 @@ See the `BlitzRelay.Protocol` library for the full message codec API.
 |--------------------------------|-----------------------------------------------------------------------------|
 | `BLITZ_RELAY_CONNECTION_KEY`   | Key used to authenticate UDP connections (required)                         |
 | `BLITZ_RELAY_HTTP_ADMIN_TOKEN` | Token for HTTP admin API authentication (required unless `--disable-http`)  |
+| `BLITZ_RELAY_CLIENT_DETAILS`   | Client details level when `--client-details` is not passed (default `Ids`)  |
 
 ## Acknowledgements
 

@@ -130,6 +130,39 @@ paths:
         '404':
           description: Room not found
 
+  /rooms/{roomCode}/clients:
+    parameters:
+      - name: roomCode
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The 8-character room code
+
+    get:
+      summary: List a room's clients
+      description: |
+        Returns the clients connected to a room. Requires the admin token.
+        The relay's `--client-details` option (or the `BLITZ_RELAY_CLIENT_DETAILS` environment variable) sets the
+        fields of each client: `Ids` (the default) returns `ClientSnapshot`, `IpAddresses` returns
+        `ClientIpAddressSnapshot`, and `IpEndpoints` returns `ClientIpEndpointSnapshot`.
+      responses:
+        '200':
+          description: Room found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/ClientSnapshot'
+                    - $ref: '#/components/schemas/ClientIpAddressSnapshot'
+                    - $ref: '#/components/schemas/ClientIpEndpointSnapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Room not found
+
   /rooms/{roomCode}/clients/{virtualClientId}:
     parameters:
       - name: roomCode
@@ -256,6 +289,51 @@ components:
         - hasHost
         - hasPendingHostClaim
         - metadata
+
+    ClientSnapshot:
+      type: object
+      description: A client in a room, returned when `--client-details` is `Ids`
+      properties:
+        virtualClientId:
+          type: integer
+          description: The virtual client ID the relay assigned when the client joined
+      required:
+        - virtualClientId
+      additionalProperties: false
+
+    ClientIpAddressSnapshot:
+      type: object
+      description: A client in a room, returned when `--client-details` is `IpAddresses`
+      properties:
+        virtualClientId:
+          type: integer
+          description: The virtual client ID the relay assigned when the client joined
+        ipAddress:
+          type: string
+          description: The client's IP address
+      required:
+        - virtualClientId
+        - ipAddress
+      additionalProperties: false
+
+    ClientIpEndpointSnapshot:
+      type: object
+      description: A client in a room, returned when `--client-details` is `IpEndpoints`
+      properties:
+        virtualClientId:
+          type: integer
+          description: The virtual client ID the relay assigned when the client joined
+        ipAddress:
+          type: string
+          description: The client's IP address
+        port:
+          type: integer
+          description: The client's UDP port
+      required:
+        - virtualClientId
+        - ipAddress
+        - port
+      additionalProperties: false
 
 security:
   - bearerAuth: [ ]
