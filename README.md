@@ -32,6 +32,8 @@ The server consists of two main components:
 - Other clients join using the room code and receive a virtual client ID.
 - The host sends data to specific clients or broadcasts to all.
 - When the host of a persistent room disconnects, the server promotes the next client in join order to host.
+- An admin can remove the host of a persistent room through the HTTP API. The server then promotes the next client in
+  the same way.
 
 ## Installation
 
