@@ -10,6 +10,7 @@ namespace BlitzRelay.Serialization;
 [JsonSerializable(typeof(CorsConfiguration))]
 [JsonSerializable(typeof(RelayHttpApi.CreateRoomRequest))]
 [JsonSerializable(typeof(RelayHttpApi.PatchRoomRequest))]
+[JsonSerializable(typeof(RelayHttpApi.VersionResponse))]
 [JsonSerializable(typeof(IReadOnlyList<RoomSnapshot>))]
 [JsonSerializable(typeof(RoomSnapshot))]
 [JsonSerializable(typeof(ClientSnapshot[]))]

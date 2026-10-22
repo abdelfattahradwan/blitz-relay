@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -74,6 +75,10 @@ internal static class RelayHttpApi
 
 		app.MapGet("/health", () => Results.Ok());
 
+		VersionResponse versionResponse = new(typeof(RelayHttpApi).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion);
+
+		app.MapGet("/version", (HttpContext context) => GetVersion(context, versionResponse, relayHostOptions.HttpAdminTokenBytes));
+
 		app.MapPost("/rooms", (HttpContext context, CreateRoomRequest createRoomRequest) => CreateRoom(context, createRoomRequest, relayServer, relayHostOptions.HttpAdminTokenBytes));
 
 		app.MapGet("/rooms", (HttpContext context) => GetRooms(context, relayServer, relayHostOptions.HttpAdminTokenBytes));
@@ -111,6 +116,11 @@ internal static class RelayHttpApi
 		}
 
 		return app;
+	}
+
+	private static IResult GetVersion(HttpContext context, VersionResponse versionResponse, byte[] adminTokenBytes)
+	{
+		return !IsAuthorised(context, adminTokenBytes) ? Results.Unauthorized() : Results.Ok(versionResponse);
 	}
 
 	private static IResult CreateRoom(HttpContext context, CreateRoomRequest request, Server relayServer, byte[] adminTokenBytes)
@@ -225,6 +235,11 @@ internal static class RelayHttpApi
 		string DisplayName = "",
 		bool IsPublic = false,
 		Dictionary<string, string>? Metadata = null
+	);
+
+	public sealed record VersionResponse
+	(
+		string Version
 	);
 
 	public sealed record PatchRoomRequest
