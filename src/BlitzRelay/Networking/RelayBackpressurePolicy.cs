@@ -19,6 +19,11 @@ internal static class RelayBackpressurePolicy
 		return deliveryMethod == DeliveryMethod.ReliableOrdered && reliableQueuePackets + reliablePacketCount > ReliableQueuePacketsBeforeDisconnect;
 	}
 
+	public static bool ExceedsReliableBacklogAlone(int reliablePacketCount)
+	{
+		return reliablePacketCount > ReliableQueuePacketsBeforeDisconnect;
+	}
+
 	public static int ReliablePacketCount(int payloadLength, int maxSinglePacketSize)
 	{
 		if (payloadLength <= maxSinglePacketSize) return 1;

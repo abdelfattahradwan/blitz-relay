@@ -763,6 +763,8 @@ internal sealed class Server : IDisposable, INetLogger
 
 		if (gameChannel is not ((byte)GameChannel.Reliable or (byte)GameChannel.Unreliable or (byte)GameChannel.UnreliableSequenced) || deliveryMethod != MapDeliveryMethod(gameChannel)) return;
 
+		if (ShouldDisconnectSenderForOversizedReliablePayload(hostSession, RelayBackpressurePolicy.ClientRelayPayloadLength(gamePayload.Length), deliveryMethod)) return;
+
 		bool isBroadcast = targetVirtualClientId == MessageCodec.BroadcastVirtualClientId;
 
 		PeerConnection? targetClient = null;
@@ -857,6 +859,8 @@ internal sealed class Server : IDisposable, INetLogger
 		MessageCodec.ReadClientData(payload, out byte gameChannel, out ReadOnlySpan<byte> gamePayload);
 
 		if (gameChannel is not ((byte)GameChannel.Reliable or (byte)GameChannel.Unreliable or (byte)GameChannel.UnreliableSequenced) || deliveryMethod != MapDeliveryMethod(gameChannel)) return;
+
+		if (ShouldDisconnectSenderForOversizedReliablePayload(clientSession, RelayBackpressurePolicy.HostRelayPayloadLength(gamePayload.Length), deliveryMethod)) return;
 
 		PeerConnection host;
 
@@ -1306,6 +1310,21 @@ internal sealed class Server : IDisposable, INetLogger
 		if (!RelayBackpressurePolicy.ShouldDropUnreliableForReliableBackpressure(reliableQueuePackets, deliveryMethod)) return false;
 
 		Log.UnreliableRelayPayloadDroppedDueToBackpressure(_logger, recipient.Peer.Id, payloadLength, reliableQueuePackets, RelayBackpressurePolicy.ReliableQueuePacketsBeforeDroppingUnreliable);
+
+		return true;
+	}
+
+	private bool ShouldDisconnectSenderForOversizedReliablePayload(PeerConnection sender, int payloadLength, DeliveryMethod deliveryMethod)
+	{
+		if (deliveryMethod != DeliveryMethod.ReliableOrdered) return false;
+
+		int reliablePacketCount = RelayBackpressurePolicy.ReliablePacketCount(payloadLength, sender.Peer.GetMaxSinglePacketSize(deliveryMethod));
+
+		if (!RelayBackpressurePolicy.ExceedsReliableBacklogAlone(reliablePacketCount)) return false;
+
+		Log.OversizedReliableRelayPayloadSenderDisconnected(_logger, sender.Peer.Id, payloadLength, reliablePacketCount, RelayBackpressurePolicy.ReliableQueuePacketsBeforeDisconnect);
+
+		DisconnectPeer(sender);
 
 		return true;
 	}

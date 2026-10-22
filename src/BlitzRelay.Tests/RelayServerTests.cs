@@ -242,6 +242,30 @@ public sealed class RelayServerTests
 	}
 
 	[TestMethod]
+	public async Task ReliableData_LargerThanTheReliableQueueAllows_DisconnectsTheSender()
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		int virtualClientId = await JoinAsync(host, client, roomCode);
+
+		client.Send(MessageCodec.CreateClientData((byte)GameChannel.Reliable, new byte[RelayBackpressurePolicy.ReliableQueuePacketsBeforeDisconnect * 1350]));
+
+		await client.WaitForDisconnectAsync();
+
+		Assert.IsTrue(MessageCodec.TryReadDisconnected(await host.ReceiveAsync(), out int disconnectedVirtualClientId));
+
+		Assert.AreEqual(virtualClientId, disconnectedVirtualClientId);
+
+		await host.AssertNothingReceivedAsync();
+	}
+
+	[TestMethod]
 	public async Task ClientDisconnect_NotifiesHost()
 	{
 		await using TestRelay relay = new();

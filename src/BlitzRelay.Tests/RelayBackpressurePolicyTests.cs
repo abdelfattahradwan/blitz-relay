@@ -22,6 +22,14 @@ public sealed class RelayBackpressurePolicyTests
 	}
 
 	[TestMethod]
+	public void ExceedsReliableBacklogAlone_OnlyAboveTheDisconnectThreshold()
+	{
+		Assert.IsFalse(RelayBackpressurePolicy.ExceedsReliableBacklogAlone(RelayBackpressurePolicy.ReliableQueuePacketsBeforeDisconnect));
+
+		Assert.IsTrue(RelayBackpressurePolicy.ExceedsReliableBacklogAlone(RelayBackpressurePolicy.ReliableQueuePacketsBeforeDisconnect + 1));
+	}
+
+	[TestMethod]
 	public void ShouldDisconnectReliableForBackpressure_CountsTheNewMessagesPackets()
 	{
 		const int threshold = RelayBackpressurePolicy.ReliableQueuePacketsBeforeDisconnect;
