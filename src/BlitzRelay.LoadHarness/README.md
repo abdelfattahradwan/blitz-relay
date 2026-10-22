@@ -39,8 +39,8 @@ task load -- --relay-address 127.0.0.1 --relay-port 7770 --connection-key your-c
 | `--warmup`         | 5                   | Warm-up duration in seconds                                           |
 | `--duration`       | 30                  | Measured duration in seconds                                          |
 
-Unreliable payloads must fit in a single datagram: up to 1343 bytes on `Unreliable` and 1340 bytes on
-`UnreliableSequenced`. Larger payloads are dropped by the relay.
+Unreliable payloads must fit in a single datagram once the relay adds its header: up to 1343 bytes on `Unreliable` and
+1340 bytes on `UnreliableSequenced`. The harness rejects larger payloads.
 
 ## How It Works
 

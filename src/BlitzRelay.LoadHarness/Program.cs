@@ -1,5 +1,6 @@
 using BlitzRelay.Networking;
 using BlitzRelay.Protocol;
+using LiteNetLib;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.Diagnostics;
@@ -9,6 +10,8 @@ namespace BlitzRelay.LoadHarness;
 internal static class Program
 {
 	private const string InProcessConnectionKey = "blitz-relay-load-harness";
+
+	private const int Mtu = 1350;
 
 	private static readonly TimeSpan SetUpTimeout = TimeSpan.FromSeconds(30);
 
@@ -118,6 +121,17 @@ internal static class Program
 				return 1;
 			}
 
+			GameChannel gameChannel = parseResult.GetRequiredValue(channelOption);
+
+			int maximumPayloadSize = MaximumPayloadSize(gameChannel);
+
+			if (payloadSize > maximumPayloadSize)
+			{
+				Console.Error.WriteLine($"'--payload-size' must be at most {maximumPayloadSize} bytes on {gameChannel}, so that relayed messages fit in a single datagram.");
+
+				return 1;
+			}
+
 			string? relayAddress = parseResult.GetValue(relayAddressOption);
 
 			string connectionKey = parseResult.GetRequiredValue(connectionKeyOption);
@@ -140,7 +154,7 @@ internal static class Program
 				parseResult.GetRequiredValue(clientsOption),
 				parseResult.GetRequiredValue(tickRateOption),
 				payloadSize,
-				parseResult.GetRequiredValue(channelOption),
+				gameChannel,
 				Math.Clamp(parseResult.GetRequiredValue(threadsOption), 1, rooms),
 				TimeSpan.FromSeconds(parseResult.GetRequiredValue(warmupOption)),
 				TimeSpan.FromSeconds(parseResult.GetRequiredValue(durationOption))
@@ -299,6 +313,18 @@ internal static class Program
 	private static long ToTimestampTicks(TimeSpan timeSpan)
 	{
 		return (long)(timeSpan.TotalSeconds * Stopwatch.Frequency);
+	}
+
+	private static int MaximumPayloadSize(GameChannel gameChannel)
+	{
+		return gameChannel switch
+		{
+			GameChannel.Unreliable => Mtu - NetConstants.HeaderSize - MessageCodec.MaxRelayHeaderSize,
+
+			GameChannel.UnreliableSequenced => Mtu - NetConstants.ChanneledHeaderSize - MessageCodec.MaxRelayHeaderSize,
+
+			_ => int.MaxValue,
+		};
 	}
 
 	private readonly record struct ResourceUsage(TimeSpan ProcessorTime, long AllocatedBytes, int Gen0, int Gen1, int Gen2)
