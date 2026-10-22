@@ -55,5 +55,8 @@ Unreliable payloads must fit in a single datagram once the relay adds its header
 - Delivered and expected messages per direction, messages per second, and latency percentiles (p50, p90, p99, p99.9,
   and max).
 - Peers disconnected during the run, for example by the relay's reliable backlog limit.
-- Process CPU time, allocated bytes, and GC collections over the measured window. When the relay runs in-process, these
-  include the simulated peers.
+- Allocated bytes and GC collections over the measured window. When the relay runs in-process, these include the
+  simulated peers.
+
+The harness threads poll continuously to timestamp messages precisely, so the harness doesn't report CPU usage. To
+measure the relay's CPU usage, run the relay as its own process and load it with `--relay-address`.

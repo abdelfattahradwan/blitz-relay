@@ -274,8 +274,6 @@ internal static class Program
 
 		Console.WriteLine($"Peers disconnected during the run: {workers.Sum(worker => worker.DisconnectedPeers)}");
 
-		Console.WriteLine($"Process CPU: {(after.ProcessorTime - before.ProcessorTime) / settings.Duration * 100:F1}% of one core (includes the harness peers)");
-
 		Console.WriteLine($"Allocated: {(after.AllocatedBytes - before.AllocatedBytes) / 1024.0 / 1024.0:F1} MiB, GC collections (gen0/gen1/gen2): {after.Gen0 - before.Gen0}/{after.Gen1 - before.Gen1}/{after.Gen2 - before.Gen2}");
 
 		return 0;
@@ -327,13 +325,11 @@ internal static class Program
 		};
 	}
 
-	private readonly record struct ResourceUsage(TimeSpan ProcessorTime, long AllocatedBytes, int Gen0, int Gen1, int Gen2)
+	private readonly record struct ResourceUsage(long AllocatedBytes, int Gen0, int Gen1, int Gen2)
 	{
 		public static ResourceUsage Capture()
 		{
-			using Process process = Process.GetCurrentProcess();
-
-			return new ResourceUsage(process.TotalProcessorTime, GC.GetTotalAllocatedBytes(precise: true), GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2));
+			return new ResourceUsage(GC.GetTotalAllocatedBytes(precise: true), GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2));
 		}
 	}
 }
