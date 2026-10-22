@@ -14,9 +14,18 @@ internal static class RelayBackpressurePolicy
 		return deliveryMethod is DeliveryMethod.Unreliable or DeliveryMethod.Sequenced && reliableQueuePackets >= ReliableQueuePacketsBeforeDroppingUnreliable;
 	}
 
-	public static bool ShouldDisconnectReliableForBackpressure(int reliableQueuePackets, DeliveryMethod deliveryMethod)
+	public static bool ShouldDisconnectReliableForBackpressure(int reliableQueuePackets, int reliablePacketCount, DeliveryMethod deliveryMethod)
 	{
-		return deliveryMethod == DeliveryMethod.ReliableOrdered && reliableQueuePackets >= ReliableQueuePacketsBeforeDisconnect;
+		return deliveryMethod == DeliveryMethod.ReliableOrdered && reliableQueuePackets + reliablePacketCount > ReliableQueuePacketsBeforeDisconnect;
+	}
+
+	public static int ReliablePacketCount(int payloadLength, int maxSinglePacketSize)
+	{
+		if (payloadLength <= maxSinglePacketSize) return 1;
+
+		int fragmentPayloadLength = maxSinglePacketSize - NetConstants.FragmentHeaderSize;
+
+		return (payloadLength + fragmentPayloadLength - 1) / fragmentPayloadLength;
 	}
 
 	public static int ClientRelayPayloadLength(int gamePayloadLength)

@@ -1316,7 +1316,9 @@ internal sealed class Server : IDisposable, INetLogger
 
 		int reliableQueuePackets = recipient.Peer.GetPacketsCountInReliableQueue(MessageCodec.RelayWireChannel, true);
 
-		if (!RelayBackpressurePolicy.ShouldDisconnectReliableForBackpressure(reliableQueuePackets, deliveryMethod)) return false;
+		int reliablePacketCount = RelayBackpressurePolicy.ReliablePacketCount(payloadLength, recipient.Peer.GetMaxSinglePacketSize(deliveryMethod));
+
+		if (!RelayBackpressurePolicy.ShouldDisconnectReliableForBackpressure(reliableQueuePackets, reliablePacketCount, deliveryMethod)) return false;
 
 		Log.ReliableRelayRecipientDisconnectedDueToBackpressure(_logger, recipient.Peer.Id, payloadLength, reliableQueuePackets, RelayBackpressurePolicy.ReliableQueuePacketsBeforeDisconnect);
 
