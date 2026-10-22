@@ -270,6 +270,28 @@ internal sealed class Server : IDisposable, INetLogger
 		}
 	}
 
+	public RemoveHostResult TryRemoveHost(string roomCode)
+	{
+		lock (_mutex)
+		{
+			if (!_roomsByCode.TryGetValue(roomCode, out Room? room)) return RemoveHostResult.RoomNotFound;
+
+			if (room.Kind != RoomKind.PersistentReserved) return RemoveHostResult.RoomNotPersistent;
+
+			if (room is not { HasActiveHost: true, Host: { } host }) return RemoveHostResult.NoHost;
+
+			Log.HostRemovedByAdmin(_logger, host.Peer.Id, roomCode);
+
+			host.Clear();
+
+			DisconnectPeer(host, MessageCodec.CreateError(ErrorCode.HostRemoved));
+
+			ReleasePersistentHostLocked(room);
+
+			return RemoveHostResult.Removed;
+		}
+	}
+
 	public void Dispose()
 	{
 		if (_disposed) return;
@@ -380,15 +402,7 @@ internal sealed class Server : IDisposable, INetLogger
 						return;
 					}
 
-					room.Host = null;
-
-					room.HostToken = null;
-
-					room.ClearPendingHostClaim();
-
-					NotifyClientsHostAvailabilityLocked(room, isAvailable: false);
-
-					_ = TryPromoteNextClientToHostLocked(room);
+					ReleasePersistentHostLocked(room);
 
 					return;
 				}
@@ -1005,6 +1019,19 @@ internal sealed class Server : IDisposable, INetLogger
 		Send(candidate, MessageCodec.CreateHostPromoted(room.Code, room.MaximumClients, claimToken), DeliveryMethod.ReliableOrdered);
 
 		return true;
+	}
+
+	private void ReleasePersistentHostLocked(Room room)
+	{
+		room.Host = null;
+
+		room.HostToken = null;
+
+		room.ClearPendingHostClaim();
+
+		NotifyClientsHostAvailabilityLocked(room, isAvailable: false);
+
+		_ = TryPromoteNextClientToHostLocked(room);
 	}
 
 	private void NotifyClientsHostAvailabilityLocked(Room room, bool isAvailable)

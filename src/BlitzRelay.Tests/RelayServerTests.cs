@@ -1,3 +1,4 @@
+using BlitzRelay.Networking;
 using BlitzRelay.Protocol;
 using BlitzRelay.Rooms;
 using LiteNetLib;
@@ -473,6 +474,78 @@ public sealed class RelayServerTests
 		Assert.IsNull(relay.Server.GetRoomSnapshot(roomCode));
 
 		Assert.IsFalse(relay.Server.DeleteRoom(roomCode));
+	}
+
+	[TestMethod]
+	public async Task TryRemoveHost_WhenRoomIsPersistent_DisconnectsHostAndPromotesClient()
+	{
+		await using TestRelay relay = new();
+
+		RoomSnapshot reservedRoom = relay.Server.CreateReservedRoom(4, "Reserved", false, null);
+
+		using RelayTestPeer promoted = await relay.ConnectAsync();
+
+		promoted.Send(MessageCodec.CreateClientJoin(reservedRoom.Code));
+
+		Assert.IsTrue(MessageCodec.TryReadHostPromoted(await promoted.ReceiveAsync(), out _, out _, out string claimToken));
+
+		promoted.Send(MessageCodec.CreateHostPromotionAck(reservedRoom.Code, claimToken));
+
+		await promoted.WaitForDisconnectAsync();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		host.Send(MessageCodec.CreateHostClaim(reservedRoom.Code, claimToken));
+
+		Assert.IsTrue(MessageCodec.TryReadRoomCreated(await host.ReceiveAsync(), out _, out _));
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		await JoinAsync(host, client, reservedRoom.Code);
+
+		Assert.AreEqual(RemoveHostResult.Removed, relay.Server.TryRemoveHost(reservedRoom.Code));
+
+		Assert.IsTrue(MessageCodec.TryReadError(await host.WaitForDisconnectAsync(), out ErrorCode errorCode));
+
+		Assert.AreEqual(ErrorCode.HostRemoved, errorCode);
+
+		Assert.IsTrue(MessageCodec.TryReadHostUnavailable(await client.ReceiveAsync()));
+
+		Assert.IsTrue(MessageCodec.TryReadHostPromoted(await client.ReceiveAsync(), out string roomCode, out _, out _));
+
+		Assert.AreEqual(reservedRoom.Code, roomCode);
+	}
+
+	[TestMethod]
+	public async Task TryRemoveHost_WhenRoomIsEphemeral_ReturnsRoomNotPersistent()
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		Assert.AreEqual(RemoveHostResult.RoomNotPersistent, relay.Server.TryRemoveHost(roomCode));
+
+		await host.AssertNothingReceivedAsync();
+	}
+
+	[TestMethod]
+	public async Task TryRemoveHost_WhenRoomHasNoHost_ReturnsNoHost()
+	{
+		await using TestRelay relay = new();
+
+		RoomSnapshot reservedRoom = relay.Server.CreateReservedRoom(4, "Reserved", false, null);
+
+		Assert.AreEqual(RemoveHostResult.NoHost, relay.Server.TryRemoveHost(reservedRoom.Code));
+	}
+
+	[TestMethod]
+	public async Task TryRemoveHost_WhenRoomDoesNotExist_ReturnsRoomNotFound()
+	{
+		await using TestRelay relay = new();
+
+		Assert.AreEqual(RemoveHostResult.RoomNotFound, relay.Server.TryRemoveHost("MISSING"));
 	}
 
 	[TestMethod]

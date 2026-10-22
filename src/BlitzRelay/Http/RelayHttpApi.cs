@@ -91,6 +91,8 @@ internal static class RelayHttpApi
 
 		app.MapDelete("/rooms/{roomCode}/clients/{virtualClientId:int}", (HttpContext context, string roomCode, int virtualClientId) => KickClient(context, roomCode, virtualClientId, relayServer, relayHostOptions.HttpAdminTokenBytes));
 
+		app.MapDelete("/rooms/{roomCode}/host", (HttpContext context, string roomCode) => RemoveHost(context, roomCode, relayServer, relayHostOptions.HttpAdminTokenBytes));
+
 		switch (relayHostOptions.ClientDetails)
 		{
 			case ClientDetails.Ids:
@@ -227,6 +229,22 @@ internal static class RelayHttpApi
 		if (!IsAuthorised(bearerToken, adminTokenBytes) && !HasRoomEditAccess(relayServer, roomCode, bearerToken)) return Results.Unauthorized();
 
 		return relayServer.TryKickClient(roomCode, virtualClientId) ? Results.NoContent() : Results.NotFound();
+	}
+
+	private static IResult RemoveHost(HttpContext context, string roomCode, Server relayServer, byte[] adminTokenBytes)
+	{
+		if (!IsAuthorised(context, adminTokenBytes)) return Results.Unauthorized();
+
+		return relayServer.TryRemoveHost(roomCode) switch
+		{
+			RemoveHostResult.Removed => Results.NoContent(),
+
+			RemoveHostResult.RoomNotPersistent => Results.Conflict("Only the host of a persistent room can be removed. Delete the room instead."),
+
+			RemoveHostResult.NoHost => Results.Conflict("The room has no host."),
+
+			_ => Results.NotFound(),
+		};
 	}
 
 	public sealed record CreateRoomRequest
