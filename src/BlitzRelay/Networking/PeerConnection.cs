@@ -1,5 +1,5 @@
-﻿using LiteNetLib;
-using BlitzRelay.Rooms;
+﻿using BlitzRelay.Rooms;
+using LiteNetLib;
 
 namespace BlitzRelay.Networking;
 

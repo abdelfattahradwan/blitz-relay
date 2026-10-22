@@ -8,13 +8,21 @@ namespace BlitzRelay.Protocol;
 public static class MessageCodec
 {
 	private const int HostRegisterHeaderSize = 3;
+
 	private const int ClientJoinHeaderSize = 3;
+
 	private const int RoomCreatedHeaderSize = 4;
+
 	private const int HostClaimHeaderSize = 5;
+
 	private const int HostPromotedHeaderSize = 6;
+
 	private const int HostPromotionAckHeaderSize = 5;
+
 	private const int EmptyMessageSize = 1;
+
 	private const int ErrorHeaderSize = 2;
+
 	private const int VirtualClientIdSize = 4;
 
 	private static readonly byte[] JoinSuccessMessage = [(byte)MessageType.JoinSuccess];

@@ -30,7 +30,7 @@ internal static class Program
 
 	private const string ClientDetailsOptionName = "--client-details";
 
-	private const string ClientDetailsValues = $"{nameof(ClientDetails.Ids)}, {nameof(ClientDetails.IpAddresses)} or {nameof(ClientDetails.IpEndpoints)}";
+	private const string ClientDetailsValues = $"{nameof(ClientDetails.Ids)}, {nameof(ClientDetails.IpAddresses)}, or {nameof(ClientDetails.IpEndpoints)}";
 
 	private static async Task<int> Main(string[] args)
 	{
