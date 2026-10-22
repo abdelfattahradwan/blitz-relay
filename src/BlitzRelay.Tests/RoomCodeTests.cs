@@ -14,7 +14,7 @@ public sealed class RoomCodeTests
 		{
 			string roomCode = RoomCode.Generate();
 
-			Assert.AreEqual(8, roomCode.Length);
+			Assert.HasCount(8, roomCode);
 
 			Assert.IsTrue(roomCode.All(Alphabet.Contains), $"Room code '{roomCode}' contains a character outside the alphabet.");
 

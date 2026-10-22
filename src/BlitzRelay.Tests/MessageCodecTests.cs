@@ -162,6 +162,7 @@ public sealed class MessageCodecTests
 	[DataRow(ErrorCode.InvalidHostClaim)]
 	[DataRow(ErrorCode.RoomClosed)]
 	[DataRow(ErrorCode.InvalidMaximumClients)]
+	[DataRow(ErrorCode.HostRemoved)]
 	[DataRow(ErrorCode.Unknown)]
 	public void ErrorMessage_RoundTrips(ErrorCode errorCode)
 	{

@@ -18,7 +18,13 @@ internal sealed class TestRelay : IAsyncDisposable
 
 		_run = Server.RunAsync(_cancellation.Token);
 
-		if (_run.IsCompleted) throw new InvalidOperationException("The relay failed to start.");
+		if (!_run.IsCompleted) return;
+
+		Server.Dispose();
+
+		_cancellation.Dispose();
+
+		throw new InvalidOperationException("The relay failed to start.");
 	}
 
 	public Server Server { get; }
