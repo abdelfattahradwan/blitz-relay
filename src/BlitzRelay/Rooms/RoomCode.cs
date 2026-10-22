@@ -10,17 +10,6 @@ public static class RoomCode
 
 	public static string Generate()
 	{
-		Span<byte> random = stackalloc byte[CodeLength];
-
-		Span<char> buffer = stackalloc char[CodeLength];
-
-		RandomNumberGenerator.Fill(random);
-
-		for (int i = 0; i < CodeLength; i++)
-		{
-			buffer[i] = Alphabet[random[i] & 31];
-		}
-
-		return new string(buffer);
+		return RandomNumberGenerator.GetString(Alphabet, CodeLength);
 	}
 }
