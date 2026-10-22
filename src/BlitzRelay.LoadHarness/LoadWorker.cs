@@ -8,9 +8,9 @@ internal sealed class LoadWorker(LoadSettings settings, LoadTimeline timeline, i
 
 	private long _lastPoll = Stopwatch.GetTimestamp();
 
-	public LoadStatistics HostToClients { get; } = new();
+	public LoadStatistics HostToClients { get; } = new(MeasuredMessageCapacity(settings, roomCount));
 
-	public LoadStatistics ClientsToHost { get; } = new();
+	public LoadStatistics ClientsToHost { get; } = new(MeasuredMessageCapacity(settings, roomCount));
 
 	public int DisconnectedPeers { get; private set; }
 
@@ -85,6 +85,13 @@ internal sealed class LoadWorker(LoadSettings settings, LoadTimeline timeline, i
 
 			Poll();
 		}
+	}
+
+	private static int MeasuredMessageCapacity(LoadSettings settings, int roomCount)
+	{
+		double messages = (double)roomCount * settings.ClientsPerRoom * settings.TickRate * settings.Duration.TotalSeconds;
+
+		return (int)Math.Min(messages, Array.MaxLength);
 	}
 
 	private void Poll()

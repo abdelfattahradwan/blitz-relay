@@ -1,8 +1,8 @@
 namespace BlitzRelay.LoadHarness;
 
-internal sealed class LoadStatistics
+internal sealed class LoadStatistics(int latencyCapacity = 0)
 {
-	private readonly List<long> _latencies = [];
+	private readonly List<long> _latencies = new(latencyCapacity);
 
 	public long Expected { get; private set; }
 
