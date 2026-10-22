@@ -23,6 +23,20 @@ paths:
         '200':
           description: Server is healthy
 
+  /version:
+    get:
+      summary: Get the relay's version
+      description: Returns the version of the running relay.
+      responses:
+        '200':
+          description: The relay's version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /rooms:
     post:
       summary: Create a persistent room
@@ -205,6 +219,15 @@ components:
       description: Missing or invalid authentication token
 
   schemas:
+    VersionResponse:
+      type: object
+      properties:
+        version:
+          type: string
+          description: The relay's version, for example `1.4.0`
+      required:
+        - version
+
     CreateRoomRequest:
       type: object
       properties:

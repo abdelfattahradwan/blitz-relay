@@ -148,6 +148,7 @@ additionally accept the room's host token.
 | Method | Endpoint                                      | Description                               |
 |--------|-----------------------------------------------|-------------------------------------------|
 | GET    | `/health`                                     | Health check (no authentication)          |
+| GET    | `/version`                                    | Get the relay's version                   |
 | POST   | `/rooms`                                      | Create a persistent room                  |
 | GET    | `/rooms`                                      | List all rooms                            |
 | GET    | `/rooms/{roomCode}`                           | Get details of a specific room            |
@@ -196,6 +197,14 @@ additionally accept the room's host token.
   "hasHost": false,
   "hasPendingHostClaim": false,
   "metadata": {}
+}
+```
+
+**Version Response**
+
+```json
+{
+  "version": "1.4.0"
 }
 ```
 
