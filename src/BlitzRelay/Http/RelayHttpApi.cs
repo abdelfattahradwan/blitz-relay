@@ -131,9 +131,13 @@ internal static class RelayHttpApi
 
 		if (request.MaximumClients <= 0) return Results.BadRequest($"{nameof(CreateRoomRequest.MaximumClients)} must be greater than 0.");
 
+		if (request.DisplayName is null) return Results.BadRequest($"{nameof(CreateRoomRequest.DisplayName)} must not be null.");
+
 		if (Encoding.UTF8.GetByteCount(request.DisplayName) > 255) return Results.BadRequest($"{nameof(CreateRoomRequest.DisplayName)} must be at most 255 bytes when UTF-8 encoded.");
 
-		return Results.Ok(relayServer.CreateReservedRoom(request.MaximumClients, request.DisplayName, request.IsPublic, request.Metadata));
+		if (request.Metadata is not null && request.Metadata.ContainsValue(null)) return Results.BadRequest($"{nameof(CreateRoomRequest.Metadata)} values must not be null.");
+
+		return Results.Ok(relayServer.CreateReservedRoom(request.MaximumClients, request.DisplayName, request.IsPublic, request.Metadata!));
 	}
 
 	private static IResult GetRooms(HttpContext context, Server relayServer, byte[] adminTokenBytes)
@@ -217,7 +221,11 @@ internal static class RelayHttpApi
 
 		if (request.DisplayName is not null && Encoding.UTF8.GetByteCount(request.DisplayName) > 255) return Results.BadRequest($"{nameof(PatchRoomRequest.DisplayName)} must be at most 255 bytes when UTF-8 encoded.");
 
-		RoomSnapshot? snapshot = relayServer.PatchRoom(roomCode, request.DisplayName, request.MetadataToAdd, request.MetadataToRemove);
+		if (request.MetadataToAdd is not null && request.MetadataToAdd.ContainsValue(null)) return Results.BadRequest($"{nameof(PatchRoomRequest.MetadataToAdd)} values must not be null.");
+
+		if (request.MetadataToRemove is not null && request.MetadataToRemove.Contains(null)) return Results.BadRequest($"{nameof(PatchRoomRequest.MetadataToRemove)} must not contain null.");
+
+		RoomSnapshot? snapshot = relayServer.PatchRoom(roomCode, request.DisplayName, request.MetadataToAdd!, request.MetadataToRemove!);
 
 		return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 	}
@@ -250,9 +258,9 @@ internal static class RelayHttpApi
 	public sealed record CreateRoomRequest
 	(
 		ushort MaximumClients = 4096,
-		string DisplayName = "",
+		string? DisplayName = "",
 		bool IsPublic = false,
-		Dictionary<string, string>? Metadata = null
+		Dictionary<string, string?>? Metadata = null
 	);
 
 	public sealed record VersionResponse
@@ -263,7 +271,7 @@ internal static class RelayHttpApi
 	public sealed record PatchRoomRequest
 	(
 		string? DisplayName = null,
-		Dictionary<string, string>? MetadataToAdd = null,
-		List<string>? MetadataToRemove = null
+		Dictionary<string, string?>? MetadataToAdd = null,
+		List<string?>? MetadataToRemove = null
 	);
 }

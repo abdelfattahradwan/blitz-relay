@@ -200,6 +200,14 @@ public sealed class RelayHttpApiTests
 
 		Assert.AreEqual(HttpStatusCode.BadRequest, longDisplayName.StatusCode);
 
+		using HttpResponseMessage nullDisplayName = await api.SendAsync(HttpMethod.Post, "/rooms", TestHttpApi.AdminToken, """{"displayName":null}""");
+
+		Assert.AreEqual(HttpStatusCode.BadRequest, nullDisplayName.StatusCode);
+
+		using HttpResponseMessage nullMetadataValue = await api.SendAsync(HttpMethod.Post, "/rooms", TestHttpApi.AdminToken, """{"metadata":{"key":null}}""");
+
+		Assert.AreEqual(HttpStatusCode.BadRequest, nullMetadataValue.StatusCode);
+
 		using HttpResponseMessage created = await api.SendAsync(HttpMethod.Post, "/rooms", TestHttpApi.AdminToken, """{"maximumClients":4,"displayName":"Room"}""");
 
 		Assert.AreEqual(HttpStatusCode.OK, created.StatusCode);
@@ -211,6 +219,24 @@ public sealed class RelayHttpApiTests
 		Assert.AreEqual(4, document.RootElement.GetProperty("maximumClients").GetInt32());
 
 		Assert.AreEqual("Room", document.RootElement.GetProperty("displayName").GetString());
+	}
+
+	[TestMethod]
+	public async Task PatchRoom_WithNullMetadata_ReturnsBadRequestAndChangesNothing()
+	{
+		await using TestHttpApi api = await TestHttpApi.StartAsync();
+
+		RoomSnapshot room = api.Relay.Server.CreateReservedRoom(4, "Room", false, null);
+
+		using HttpResponseMessage nullValue = await api.SendAsync(HttpMethod.Patch, $"/rooms/{room.Code}", TestHttpApi.AdminToken, """{"displayName":"Renamed","metadataToAdd":{"key":null}}""");
+
+		Assert.AreEqual(HttpStatusCode.BadRequest, nullValue.StatusCode);
+
+		using HttpResponseMessage nullKey = await api.SendAsync(HttpMethod.Patch, $"/rooms/{room.Code}", TestHttpApi.AdminToken, """{"displayName":"Renamed","metadataToRemove":[null]}""");
+
+		Assert.AreEqual(HttpStatusCode.BadRequest, nullKey.StatusCode);
+
+		Assert.AreEqual("Room", api.Relay.Server.GetRoomSnapshot(room.Code)?.DisplayName);
 	}
 
 	[TestMethod]
