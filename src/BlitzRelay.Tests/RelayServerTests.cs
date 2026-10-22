@@ -243,6 +243,122 @@ public sealed class RelayServerTests
 	}
 
 	[TestMethod]
+	public async Task HostBroadcast_WithOneClient_IsRelayedToThatClient()
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		await JoinAsync(host, client, roomCode);
+
+		host.Send(MessageCodec.CreateHostData(MessageCodec.BroadcastVirtualClientId, (byte)GameChannel.Reliable, [7]));
+
+		await AssertClientDataAsync(client, GameChannel.Reliable, [7]);
+	}
+
+	[TestMethod]
+	public async Task HostBroadcast_WithNoClients_IsDropped()
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		host.Send(MessageCodec.CreateHostData(MessageCodec.BroadcastVirtualClientId, (byte)GameChannel.Reliable, [7]));
+
+		await host.AssertNothingReceivedAsync();
+
+		int virtualClientId = await JoinAsync(host, client, roomCode);
+
+		host.Send(MessageCodec.CreateHostData(virtualClientId, (byte)GameChannel.Reliable, [8]));
+
+		await AssertClientDataAsync(client, GameChannel.Reliable, [8]);
+	}
+
+	[TestMethod]
+	[DataRow(1500)]
+	[DataRow(4096)]
+	public async Task ReliableData_LargerThanOnePacket_IsRelayedInBothDirections(int gamePayloadLength)
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		int virtualClientId = await JoinAsync(host, client, roomCode);
+
+		byte[] gamePayload = new byte[gamePayloadLength];
+
+		Random.Shared.NextBytes(gamePayload);
+
+		client.Send(MessageCodec.CreateClientData((byte)GameChannel.Reliable, gamePayload));
+
+		await AssertHostDataAsync(host, virtualClientId, GameChannel.Reliable, gamePayload);
+
+		host.Send(MessageCodec.CreateHostData(virtualClientId, (byte)GameChannel.Reliable, gamePayload));
+
+		await AssertClientDataAsync(client, GameChannel.Reliable, gamePayload);
+	}
+
+	[TestMethod]
+	[DataRow(1500)]
+	[DataRow(4096)]
+	public async Task HostBroadcast_LargerThanOnePacket_IsRelayedToEveryClient(int gamePayloadLength)
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer first = await relay.ConnectAsync();
+
+		using RelayTestPeer second = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		await JoinAsync(host, first, roomCode);
+
+		await JoinAsync(host, second, roomCode);
+
+		byte[] gamePayload = new byte[gamePayloadLength];
+
+		Random.Shared.NextBytes(gamePayload);
+
+		host.Send(MessageCodec.CreateHostData(MessageCodec.BroadcastVirtualClientId, (byte)GameChannel.Reliable, gamePayload));
+
+		await AssertClientDataAsync(first, GameChannel.Reliable, gamePayload);
+
+		await AssertClientDataAsync(second, GameChannel.Reliable, gamePayload);
+	}
+
+	[TestMethod]
+	public async Task UnreliableData_LargerThanTheRelayedFrameAllows_IsDropped()
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		await JoinAsync(host, client, roomCode);
+
+		client.Send(MessageCodec.CreateClientData((byte)GameChannel.Unreliable, new byte[LargestUnreliableGamePayload + 1]), DeliveryMethod.Unreliable);
+
+		await host.AssertNothingReceivedAsync();
+	}
+
+	[TestMethod]
 	public async Task ReliableData_LargerThanTheReliableQueueAllows_DisconnectsTheSender()
 	{
 		await using TestRelay relay = new();
