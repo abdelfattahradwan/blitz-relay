@@ -535,6 +535,134 @@ public sealed class RelayServerTests
 	}
 
 	[TestMethod]
+	public async Task HostPromotion_WhenCandidateLeavesBeforeAcknowledging_PromotesNextClient()
+	{
+		await using TestRelay relay = new();
+
+		RoomSnapshot reservedRoom = relay.Server.CreateReservedRoom(4, "Reserved", false, null);
+
+		using RelayTestPeer candidate = await relay.ConnectAsync();
+
+		using RelayTestPeer next = await relay.ConnectAsync();
+
+		await JoinAsPromotedAsync(candidate, reservedRoom.Code);
+
+		await JoinWithoutHostAsync(next, reservedRoom.Code);
+
+		candidate.Disconnect();
+
+		Assert.IsTrue(MessageCodec.TryReadHostUnavailable(await next.ReceiveAsync()));
+
+		Assert.IsTrue(MessageCodec.TryReadHostPromoted(await next.ReceiveAsync(), out string roomCode, out _, out _));
+
+		Assert.AreEqual(reservedRoom.Code, roomCode);
+	}
+
+	[TestMethod]
+	public async Task HostPromotion_WhenCandidateAcknowledgesButNeverClaims_PromotesNextClientAfterTimeout()
+	{
+		await using TestRelay relay = new();
+
+		RoomSnapshot reservedRoom = relay.Server.CreateReservedRoom(4, "Reserved", false, null);
+
+		using RelayTestPeer candidate = await relay.ConnectAsync();
+
+		using RelayTestPeer next = await relay.ConnectAsync();
+
+		using RelayTestPeer stale = await relay.ConnectAsync();
+
+		string claimToken = await JoinAsPromotedAsync(candidate, reservedRoom.Code);
+
+		await JoinWithoutHostAsync(next, reservedRoom.Code);
+
+		candidate.Send(MessageCodec.CreateHostPromotionAck(reservedRoom.Code, claimToken));
+
+		await candidate.WaitForDisconnectAsync();
+
+		relay.TimeProvider.Advance(TimeSpan.FromSeconds(10));
+
+		Assert.IsTrue(MessageCodec.TryReadHostUnavailable(await next.ReceiveAsync()));
+
+		Assert.IsTrue(MessageCodec.TryReadHostPromoted(await next.ReceiveAsync(), out _, out _, out string nextClaimToken));
+
+		Assert.AreNotEqual(claimToken, nextClaimToken);
+
+		stale.Send(MessageCodec.CreateHostClaim(reservedRoom.Code, claimToken));
+
+		Assert.IsTrue(MessageCodec.TryReadError(await stale.ReceiveAsync(), out ErrorCode errorCode));
+
+		Assert.AreEqual(ErrorCode.InvalidHostClaim, errorCode);
+	}
+
+	[TestMethod]
+	public async Task HostClaim_WithWaitingClients_NotifiesThemAndTheNewHost()
+	{
+		await using TestRelay relay = new();
+
+		RoomSnapshot reservedRoom = relay.Server.CreateReservedRoom(4, "Reserved", false, null);
+
+		using RelayTestPeer promoted = await relay.ConnectAsync();
+
+		using RelayTestPeer first = await relay.ConnectAsync();
+
+		using RelayTestPeer second = await relay.ConnectAsync();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		string claimToken = await JoinAsPromotedAsync(promoted, reservedRoom.Code);
+
+		await JoinWithoutHostAsync(first, reservedRoom.Code);
+
+		await JoinWithoutHostAsync(second, reservedRoom.Code);
+
+		await ClaimAsync(promoted, host, reservedRoom.Code, claimToken);
+
+		Assert.IsTrue(MessageCodec.TryReadHostAvailable(await first.ReceiveAsync()));
+
+		Assert.IsTrue(MessageCodec.TryReadHostAvailable(await second.ReceiveAsync()));
+
+		Assert.IsTrue(MessageCodec.TryReadConnected(await host.ReceiveAsync(), out int firstConnectedVirtualClientId));
+
+		Assert.IsTrue(MessageCodec.TryReadConnected(await host.ReceiveAsync(), out int secondConnectedVirtualClientId));
+
+		ClientSnapshot[]? clientSnapshots = relay.Server.GetRoomClientSnapshots<ClientSnapshot>(reservedRoom.Code);
+
+		Assert.IsNotNull(clientSnapshots);
+
+		Assert.AreSequenceEqual([new ClientSnapshot(firstConnectedVirtualClientId), new ClientSnapshot(secondConnectedVirtualClientId)], clientSnapshots);
+	}
+
+	[TestMethod]
+	public async Task PersistentHostDisconnect_PromotesNextClientAndRevokesTheHostToken()
+	{
+		await using TestRelay relay = new();
+
+		RoomSnapshot reservedRoom = relay.Server.CreateReservedRoom(4, "Reserved", false, null);
+
+		using RelayTestPeer promoted = await relay.ConnectAsync();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string claimToken = await JoinAsPromotedAsync(promoted, reservedRoom.Code);
+
+		string hostToken = await ClaimAsync(promoted, host, reservedRoom.Code, claimToken);
+
+		await JoinAsync(host, client, reservedRoom.Code);
+
+		host.Disconnect();
+
+		Assert.IsTrue(MessageCodec.TryReadHostUnavailable(await client.ReceiveAsync()));
+
+		Assert.IsTrue(MessageCodec.TryReadHostPromoted(await client.ReceiveAsync(), out string roomCode, out _, out _));
+
+		Assert.AreEqual(reservedRoom.Code, roomCode);
+
+		Assert.IsFalse(relay.Server.HasRoomHostToken(reservedRoom.Code, hostToken));
+	}
+
+	[TestMethod]
 	public async Task HostClaim_WhenClaimTokenIsWrong_ReturnsInvalidHostClaim()
 	{
 		await using TestRelay relay = new();
@@ -640,21 +768,15 @@ public sealed class RelayServerTests
 
 		using RelayTestPeer promoted = await relay.ConnectAsync();
 
-		promoted.Send(MessageCodec.CreateClientJoin(reservedRoom.Code));
-
-		Assert.IsTrue(MessageCodec.TryReadHostPromoted(await promoted.ReceiveAsync(), out _, out _, out string claimToken));
-
-		promoted.Send(MessageCodec.CreateHostPromotionAck(reservedRoom.Code, claimToken));
-
-		await promoted.WaitForDisconnectAsync();
-
 		using RelayTestPeer host = await relay.ConnectAsync();
 
-		host.Send(MessageCodec.CreateHostClaim(reservedRoom.Code, claimToken));
-
-		Assert.IsTrue(MessageCodec.TryReadRoomCreated(await host.ReceiveAsync(), out _, out _));
-
 		using RelayTestPeer client = await relay.ConnectAsync();
+
+		using RelayTestPeer newHost = await relay.ConnectAsync();
+
+		string claimToken = await JoinAsPromotedAsync(promoted, reservedRoom.Code);
+
+		string hostToken = await ClaimAsync(promoted, host, reservedRoom.Code, claimToken);
 
 		await JoinAsync(host, client, reservedRoom.Code);
 
@@ -664,11 +786,21 @@ public sealed class RelayServerTests
 
 		Assert.AreEqual(ErrorCode.HostRemoved, errorCode);
 
+		Assert.IsFalse(relay.Server.HasRoomHostToken(reservedRoom.Code, hostToken));
+
 		Assert.IsTrue(MessageCodec.TryReadHostUnavailable(await client.ReceiveAsync()));
 
-		Assert.IsTrue(MessageCodec.TryReadHostPromoted(await client.ReceiveAsync(), out string roomCode, out _, out _));
+		Assert.IsTrue(MessageCodec.TryReadHostPromoted(await client.ReceiveAsync(), out string roomCode, out _, out string newClaimToken));
 
 		Assert.AreEqual(reservedRoom.Code, roomCode);
+
+		await ClaimAsync(client, newHost, reservedRoom.Code, newClaimToken);
+
+		RoomSnapshot? snapshot = relay.Server.GetRoomSnapshot(reservedRoom.Code);
+
+		Assert.IsNotNull(snapshot);
+
+		Assert.IsTrue(snapshot.HasHost);
 	}
 
 	[TestMethod]
