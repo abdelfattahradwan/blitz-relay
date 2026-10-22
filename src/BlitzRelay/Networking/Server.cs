@@ -659,7 +659,7 @@ internal sealed class Server : IDisposable, INetLogger
 
 	private void HandleClientJoin(PeerConnection session, ReadOnlySpan<byte> payload)
 	{
-		if (!MessageCodec.TryReadClientJoin(payload, out string roomCode))
+		if (!MessageCodec.TryReadClientJoin(payload, out string roomCode) || !RoomCode.IsValid(roomCode))
 		{
 			Log.InvalidClientJoin(_logger, session.Peer.Id);
 

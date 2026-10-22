@@ -103,6 +103,20 @@ public sealed class RelayServerTests
 	}
 
 	[TestMethod]
+	public async Task ClientJoin_WithLowerCaseRoomCode_JoinsTheRoom()
+	{
+		await using TestRelay relay = new();
+
+		using RelayTestPeer host = await relay.ConnectAsync();
+
+		using RelayTestPeer client = await relay.ConnectAsync();
+
+		string roomCode = await RegisterHostAsync(host, 4);
+
+		await JoinAsync(host, client, roomCode.ToLowerInvariant());
+	}
+
+	[TestMethod]
 	[DataRow(GameChannel.Reliable, DeliveryMethod.ReliableOrdered)]
 	[DataRow(GameChannel.Unreliable, DeliveryMethod.Unreliable)]
 	[DataRow(GameChannel.UnreliableSequenced, DeliveryMethod.Sequenced)]
