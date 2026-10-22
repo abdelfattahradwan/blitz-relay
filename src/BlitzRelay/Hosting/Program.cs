@@ -1,6 +1,7 @@
 using BlitzRelay.Serialization;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
+using System.Reflection;
 using System.Text.Json;
 
 namespace BlitzRelay.Hosting;
@@ -87,7 +88,14 @@ internal static class Program
 			},
 		};
 
-		RootCommand rootCommand = new()
+		string? copyright = typeof(Program).Assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright;
+
+		string description = $"""
+							  Relay server for multiplayer game traffic
+							  {copyright}
+							  """;
+
+		RootCommand rootCommand = new(description)
 		{
 			Options =
 			{
