@@ -2,6 +2,7 @@ using BlitzRelay.Networking;
 using BlitzRelay.Protocol;
 using BlitzRelay.Rooms;
 using LiteNetLib;
+using static BlitzRelay.Tests.RelayFlows;
 
 namespace BlitzRelay.Tests;
 
@@ -652,26 +653,6 @@ public sealed class RelayServerTests
 		Assert.IsNotNull(clientSnapshots);
 
 		Assert.AreSequenceEqual([new ClientIpEndpointSnapshot(virtualClientId, "127.0.0.1", client.LocalPort)], clientSnapshots);
-	}
-
-	private static async Task<string> RegisterHostAsync(RelayTestPeer host, int maximumClients)
-	{
-		host.Send(MessageCodec.CreateHostRegister(maximumClients));
-
-		Assert.IsTrue(MessageCodec.TryReadRoomCreated(await host.ReceiveAsync(), out string roomCode, out _));
-
-		return roomCode;
-	}
-
-	private static async Task<int> JoinAsync(RelayTestPeer host, RelayTestPeer client, string roomCode)
-	{
-		client.Send(MessageCodec.CreateClientJoin(roomCode));
-
-		Assert.IsTrue(MessageCodec.TryReadJoinSuccess(await client.ReceiveAsync()));
-
-		Assert.IsTrue(MessageCodec.TryReadConnected(await host.ReceiveAsync(), out int virtualClientId));
-
-		return virtualClientId;
 	}
 
 	private static async Task AssertHostDataAsync(RelayTestPeer host, int virtualClientId, GameChannel gameChannel, byte[] gamePayload)
