@@ -17,5 +17,7 @@ public enum ErrorCode : byte
 
 	InvalidMaximumClients = 0x06,
 
+	HostRemoved = 0x07,
+
 	Unknown = 0xFF,
 }
