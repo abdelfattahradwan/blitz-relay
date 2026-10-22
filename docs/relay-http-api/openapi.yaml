@@ -205,6 +205,35 @@ paths:
         '404':
           description: Room or client not found
 
+  /rooms/{roomCode}/host:
+    parameters:
+      - name: roomCode
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The 8-character room code
+
+    delete:
+      summary: Remove the host of a persistent room
+      description: |
+        Disconnects the room's host with the `HostRemoved` error code. The room then behaves as if the host had left:
+        the relay promotes the longest-connected client to host. Only persistent rooms accept it; to remove the host of
+        an ephemeral room, delete the room. Requires the admin token.
+      responses:
+        '204':
+          description: Host removed successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Room not found
+        '409':
+          description: The room is not persistent, or it has no host
+          content:
+            application/json:
+              schema:
+                type: string
+
 components:
   securitySchemes:
     bearerAuth:

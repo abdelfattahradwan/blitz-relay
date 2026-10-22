@@ -155,6 +155,11 @@ environment variable. `DELETE /rooms/{roomCode}`, `PATCH /rooms/{roomCode}`, and
 | PATCH  | `/rooms/{roomCode}`                           | Update a room's display name and metadata |
 | GET    | `/rooms/{roomCode}/clients`                   | List a room's clients                     |
 | DELETE | `/rooms/{roomCode}/clients/{virtualClientId}` | Kick a client from a room                 |
+| DELETE | `/rooms/{roomCode}/host`                      | Remove the host of a persistent room      |
+
+`DELETE /rooms/{roomCode}/host` disconnects the host with the `HostRemoved` error code. The room then behaves as if the
+host had left: the relay promotes the longest-connected client to host. Only persistent rooms accept it; to remove the
+host of an ephemeral room, delete the room.
 
 **Create Room Request**
 
