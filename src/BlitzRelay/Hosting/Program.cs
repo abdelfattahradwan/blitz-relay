@@ -36,13 +36,6 @@ internal static class Program
 	{
 		string? connectionKey = Environment.GetEnvironmentVariable(ConnectionKeyEnvironmentVariable);
 
-		if (string.IsNullOrWhiteSpace(connectionKey))
-		{
-			await Console.Error.WriteLineAsync($"'{ConnectionKeyEnvironmentVariable}' environment variable is not set.");
-
-			return 1;
-		}
-
 		string? httpAdminToken = Environment.GetEnvironmentVariable(HttpAdminTokenEnvironmentVariable);
 
 		string? clientDetailsVariable = Environment.GetEnvironmentVariable(ClientDetailsEnvironmentVariable);
@@ -114,6 +107,13 @@ internal static class Program
 
 		async Task<int> RootCommandAction(ParseResult parseResult, CancellationToken cancellationToken)
 		{
+			if (string.IsNullOrWhiteSpace(connectionKey))
+			{
+				await Console.Error.WriteLineAsync($"'{ConnectionKeyEnvironmentVariable}' environment variable is not set.");
+
+				return 1;
+			}
+
 			bool httpApiEnabled = !parseResult.GetValue(disableHttpOption);
 
 			if (httpApiEnabled && string.IsNullOrWhiteSpace(httpAdminToken))
