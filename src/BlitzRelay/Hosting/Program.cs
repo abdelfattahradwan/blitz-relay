@@ -11,6 +11,8 @@ internal static class Program
 
 	private const string HttpAdminTokenEnvironmentVariable = "BLITZ_RELAY_HTTP_ADMIN_TOKEN";
 
+	private const string ClientDetailsEnvironmentVariable = "BLITZ_RELAY_CLIENT_DETAILS";
+
 	private const string PortOptionName = "--port";
 
 	private const string PortOptionShortName = "-p";
@@ -25,6 +27,10 @@ internal static class Program
 
 	private const string CorsOptionName = "--cors";
 
+	private const string ClientDetailsOptionName = "--client-details";
+
+	private const string ClientDetailsValues = $"{nameof(ClientDetails.Ids)}, {nameof(ClientDetails.IpAddresses)} or {nameof(ClientDetails.IpEndpoints)}";
+
 	private static async Task<int> Main(string[] args)
 	{
 		string? connectionKey = Environment.GetEnvironmentVariable(ConnectionKeyEnvironmentVariable);
@@ -37,6 +43,8 @@ internal static class Program
 		}
 
 		string? httpAdminToken = Environment.GetEnvironmentVariable(HttpAdminTokenEnvironmentVariable);
+
+		string? clientDetailsVariable = Environment.GetEnvironmentVariable(ClientDetailsEnvironmentVariable);
 
 		Option<int> portOption = new(PortOptionName, PortOptionShortName)
 		{
@@ -63,6 +71,22 @@ internal static class Program
 			Description = "Path to a JSON file describing the CORS policy. If omitted, a permissive (allow any) policy is used.",
 		};
 
+		Option<ClientDetails> clientDetailsOption = new(ClientDetailsOptionName)
+		{
+			Description = $"Client details returned by 'GET /rooms/{{roomCode}}/clients': {ClientDetailsValues}. Overrides the '{ClientDetailsEnvironmentVariable}' environment variable.",
+
+			DefaultValueFactory = argumentResult =>
+			{
+				if (string.IsNullOrWhiteSpace(clientDetailsVariable)) return ClientDetails.Ids;
+
+				if (Enum.TryParse(clientDetailsVariable, true, out ClientDetails clientDetails)) return clientDetails;
+
+				argumentResult.AddError($"'{ClientDetailsEnvironmentVariable}' environment variable must be {ClientDetailsValues}.");
+
+				return default(ClientDetails);
+			},
+		};
+
 		RootCommand rootCommand = new()
 		{
 			Options =
@@ -72,6 +96,7 @@ internal static class Program
 				disableHttpOption,
 				logLevelOption,
 				corsOption,
+				clientDetailsOption,
 			},
 		};
 
@@ -117,6 +142,15 @@ internal static class Program
 				}
 			}
 
+			ClientDetails clientDetails = parseResult.GetRequiredValue(clientDetailsOption);
+
+			if (!Enum.IsDefined(clientDetails))
+			{
+				await Console.Error.WriteLineAsync($"Client details must be {ClientDetailsValues}.");
+
+				return 1;
+			}
+
 			RelayHostOptions relayHostOptions = new()
 			{
 				UdpPort = parseResult.GetRequiredValue(portOption),
@@ -132,6 +166,8 @@ internal static class Program
 				HttpAdminToken = httpAdminToken ?? string.Empty,
 
 				Cors = corsConfiguration,
+
+				ClientDetails = clientDetails,
 			};
 
 			return await RelayHost.RunAsync(relayHostOptions, cancellationToken);

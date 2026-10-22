@@ -86,6 +86,30 @@ internal static class RelayHttpApi
 
 		app.MapDelete("/rooms/{roomCode}/clients/{virtualClientId:int}", (HttpContext context, string roomCode, int virtualClientId) => KickClient(context, roomCode, virtualClientId, relayServer, relayHostOptions.HttpAdminTokenBytes));
 
+		switch (relayHostOptions.ClientDetails)
+		{
+			case ClientDetails.Ids:
+			{
+				app.MapGet("/rooms/{roomCode}/clients", (HttpContext context, string roomCode) => GetRoomClients<ClientSnapshot>(context, roomCode, relayServer, relayHostOptions.HttpAdminTokenBytes));
+
+				break;
+			}
+
+			case ClientDetails.IpAddresses:
+			{
+				app.MapGet("/rooms/{roomCode}/clients", (HttpContext context, string roomCode) => GetRoomClients<ClientIpAddressSnapshot>(context, roomCode, relayServer, relayHostOptions.HttpAdminTokenBytes));
+
+				break;
+			}
+
+			case ClientDetails.IpEndpoints:
+			{
+				app.MapGet("/rooms/{roomCode}/clients", (HttpContext context, string roomCode) => GetRoomClients<ClientIpEndpointSnapshot>(context, roomCode, relayServer, relayHostOptions.HttpAdminTokenBytes));
+
+				break;
+			}
+		}
+
 		return app;
 	}
 
@@ -112,6 +136,15 @@ internal static class RelayHttpApi
 		RoomSnapshot? snapshot = relayServer.GetRoomSnapshot(roomCode);
 
 		return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+	}
+
+	private static IResult GetRoomClients<TClientSnapshot>(HttpContext context, string roomCode, Server relayServer, byte[] adminTokenBytes) where TClientSnapshot : IClientSnapshot<TClientSnapshot>
+	{
+		if (!IsAuthorised(context, adminTokenBytes)) return Results.Unauthorized();
+
+		TClientSnapshot[]? clientSnapshots = relayServer.GetRoomClientSnapshots<TClientSnapshot>(roomCode);
+
+		return clientSnapshots is null ? Results.NotFound() : Results.Ok(clientSnapshots);
 	}
 
 	private static IResult DeleteRoom(HttpContext context, string roomCode, Server relayServer, byte[] adminTokenBytes)

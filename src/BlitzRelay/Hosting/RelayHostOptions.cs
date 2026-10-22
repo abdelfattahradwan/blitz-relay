@@ -23,4 +23,6 @@ public sealed class RelayHostOptions
 	}
 
 	public required CorsConfiguration? Cors { get; init; }
+
+	public required ClientDetails ClientDetails { get; init; }
 }
