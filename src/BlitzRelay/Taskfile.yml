@@ -7,10 +7,12 @@ vars:
 
 tasks:
   publish:
+    desc: Publish one flavour of the relay for one platform, set with the OS, ARCH, and FLAVOUR variables
     cmds:
       - dotnet publish "{{.PROJECT}}" -c Release -r {{.OS}}-{{.ARCH}} -p:PublishSingleFile=true -p:Flavour={{.FLAVOUR}} -o {{.OUT_DIR}}/{{.OS}}-{{.ARCH}}-{{.FLAVOUR}}
 
   publish-win:
+    desc: Publish every flavour of the relay for Windows x86 and x64
     cmds:
       - for:
           matrix:
@@ -24,6 +26,7 @@ tasks:
           FLAVOUR: '{{.ITEM.FLAVOUR}}'
 
   publish-linux:
+    desc: Publish every flavour of the relay for Linux x64
     cmds:
       - for:
           matrix:
@@ -37,6 +40,7 @@ tasks:
           FLAVOUR: '{{.ITEM.FLAVOUR}}'
 
   publish-all:
+    desc: Publish every flavour of the relay for Windows and Linux
     cmds:
       - task: publish-win
       - task: publish-linux
