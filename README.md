@@ -44,7 +44,7 @@ from source.
 
 ### Prerequisites
 
-- .NET 10.0 runtime (or use the `standalone` or `native` pre-built binaries)
+- ASP.NET Core Runtime 10.0 (or use the `standalone` or `native` pre-built binaries)
 
 ### Running the Server
 
