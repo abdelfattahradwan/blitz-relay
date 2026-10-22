@@ -18,13 +18,20 @@ internal sealed class RelayTestPeer : IDisposable
 
 	private readonly TaskCompletionSource<byte[]> _disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+	private DisconnectReason _disconnectReason;
+
 	private RelayTestPeer()
 	{
 		EventBasedNetListener listener = new();
 
 		listener.PeerConnectedEvent += peer => _connected.TrySetResult(peer);
 
-		listener.PeerDisconnectedEvent += (_, disconnectInfo) => _disconnected.TrySetResult(disconnectInfo.AdditionalData.GetRemainingBytesSpan().ToArray());
+		listener.PeerDisconnectedEvent += (_, disconnectInfo) =>
+		{
+			_disconnectReason = disconnectInfo.Reason;
+
+			_disconnected.TrySetResult(disconnectInfo.AdditionalData.GetRemainingBytesSpan().ToArray());
+		};
 
 		listener.NetworkReceiveEvent += (_, reader, _, _) => _received.Writer.TryWrite(reader.GetRemainingBytes());
 
@@ -62,7 +69,7 @@ internal sealed class RelayTestPeer : IDisposable
 
 			Task completed = await Task.WhenAny(testPeer._connected.Task, testPeer._disconnected.Task).WaitAsync(Timeout);
 
-			if (completed != testPeer._connected.Task) throw new InvalidOperationException("The relay rejected the connection.");
+			if (completed != testPeer._connected.Task) throw new RelayConnectionRejectedException(testPeer._disconnectReason);
 
 			return testPeer;
 		}

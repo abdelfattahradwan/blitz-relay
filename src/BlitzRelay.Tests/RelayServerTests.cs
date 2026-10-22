@@ -16,7 +16,9 @@ public sealed class RelayServerTests
 	{
 		await using TestRelay relay = new();
 
-		await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => RelayTestPeer.ConnectAsync(relay.Server.LocalPort, "wrong-key"));
+		RelayConnectionRejectedException exception = await Assert.ThrowsExactlyAsync<RelayConnectionRejectedException>(() => RelayTestPeer.ConnectAsync(relay.Server.LocalPort, "wrong-key"));
+
+		Assert.AreEqual(DisconnectReason.ConnectionRejected, exception.Reason);
 	}
 
 	[TestMethod]
@@ -677,7 +679,9 @@ public sealed class RelayServerTests
 
 		Assert.IsTrue(MessageCodec.TryReadHostPromoted(await promoted.ReceiveAsync(), out _, out _, out string claimToken));
 
-		impostor.Send(MessageCodec.CreateHostClaim(reservedRoom.Code, claimToken.ToLowerInvariant()));
+		string wrongClaimToken = (claimToken[0] == '0' ? '1' : '0') + claimToken[1..];
+
+		impostor.Send(MessageCodec.CreateHostClaim(reservedRoom.Code, wrongClaimToken));
 
 		Assert.IsTrue(MessageCodec.TryReadError(await impostor.ReceiveAsync(), out ErrorCode errorCode));
 
@@ -719,7 +723,9 @@ public sealed class RelayServerTests
 
 		Assert.IsTrue(relay.Server.HasRoomHostToken(roomCode, roomHostToken));
 
-		Assert.IsFalse(relay.Server.HasRoomHostToken(roomCode, roomHostToken.ToLowerInvariant()));
+		string wrongHostToken = (roomHostToken[0] == '0' ? '1' : '0') + roomHostToken[1..];
+
+		Assert.IsFalse(relay.Server.HasRoomHostToken(roomCode, wrongHostToken));
 
 		Assert.IsFalse(relay.Server.HasRoomHostToken(roomCode, roomHostToken[..^1]));
 
@@ -954,5 +960,7 @@ public sealed class RelayServerTests
 		Assert.IsTrue(MessageCodec.TryReadDisconnected(await host.ReceiveAsync(), out int hostVirtualClientId));
 
 		Assert.AreEqual(virtualClientId, hostVirtualClientId);
+
+		await host.AssertNothingReceivedAsync();
 	}
 }
