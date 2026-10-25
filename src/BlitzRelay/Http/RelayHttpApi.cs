@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -15,6 +17,7 @@ namespace BlitzRelay.Http;
 
 internal static class RelayHttpApi
 {
+	[DynamicDependency(nameof(CollectionBase.GetEnumerator), typeof(CollectionBase))]
 	public static WebApplication Build(WebApplicationBuilder builder, RelayHostOptions relayHostOptions)
 	{
 		builder.WebHost.ConfigureKestrel(options => options.ListenAnyIP(relayHostOptions.HttpPort));
