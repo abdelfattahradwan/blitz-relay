@@ -249,6 +249,20 @@ See the `BlitzRelay.Protocol` library for the full message codec API.
 | `BLITZ_RELAY_HTTP_ADMIN_TOKEN` | Token for HTTP admin API authentication (required unless `--disable-http`)  |
 | `BLITZ_RELAY_CLIENT_DETAILS`   | Client details level when `--client-details` is not passed (default `Ids`)  |
 
+## Limits
+
+Each host has one connection to the relay, and all reliable traffic between the host and its clients shares that
+connection's reliable channel. LiteNetLib keeps up to 64 reliable packets in flight per channel, so a host can exchange
+roughly 1 MB of reliable data per second in each direction with a 65 ms round trip to the relay, and proportionally less
+over longer round trips. Unreliable traffic isn't affected.
+
+This is plenty for most games. Shared across 64 clients, it's still about 16 KB of reliable data per client per second,
+and reliable traffic is usually small, infrequent messages such as RPCs, chat, and game events. For example, 64 clients
+each sending their host a 256-byte reliable message 30 times a second see no added latency.
+
+Turn-based, card, and board games, party and co-op games, and shooters, racing, and sports games that send movement over
+unreliable channels typically use a small fraction of this, so the limit doesn't affect them.
+
 ## Acknowledgements
 
 Blitz Relay uses [LiteNetLib](https://github.com/RevenantX/LiteNetLib) by RevenantX for UDP networking.
